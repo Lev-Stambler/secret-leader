@@ -1,5 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage{Custom}
+% \usepackage{algorithmic}
 \usepackage{CSTheoryToolkitCMUStyle}
 \usepackage{cleveref}
 
@@ -20,15 +21,112 @@
 
 \begin{document}
 
-\title{My Title}
+\title{Multiple Secret Leaders}
 
 \author{\myname}
 
 \date{\today}
 \maketitle
 
-\begin{abstract}
-\end{abstract}
+\newcommand{\npar}{n}
+\newcommand{\kld}{k}
+\newcommand{\comm}{\texttt{comm}}
+\newcommand{\Enc}{\texttt{Enc}_{\mathrm{TFHE}}}
+\newcommand{\Dec}{\texttt{Dec}_{\mathrm{TFHE}}}
+% \begin{abstract}
+% \end{abstract}
+\section{Some Notation or Smthng}
+\begin{enumerate}
+  \item We will have $\npar$ parties
+  \item We will have $\kld$ leaders elected
+  \item We will have a ``bid'' published by a user $i \in [\npar]$ be denoted as $b_i$
+  \item We will denote a commitment as $\comm_i$
+  \item We will denote some generic CRHF as $h$
+  \item We will say $\Enc$ and $\Dec$ for TFHE encoding and decoding respectively
+\end{enumerate}
+\section{Sketching shtuff out}
+Say we want to elect $\kld$ leaders (maybe with or without repetition) secretly out of $\npar$
+parties, we can run SSLE $\kld$ times but that'd be painful. Let's not do that.
+
+\subsection{Simple sorting}
+\label{sec:simpleSort}
+A simple approach with runtime (assuming $\kld \leq \npar$) $O(\kld + \npar \log \npar)$
+is to use sorting. At a high level, the idea is to somehow randomly sort the $\npar$ parties 
+then elect the top $\kld$ parties in the sort.
+To do this we can use TFHE in a very similar way to the SSLE paper.
+
+\begin{figure}
+\begin{center}
+\fbox{\parbox{12cm}{
+\begin{algorithmic}
+  \State $\alpha \gets \texttt{ROM}(b_1, b_2, ...)$
+  \For{$i \in [n]$}
+    \State $b'_i \gets (\Enc(r_i) - \alpha, \Enc(\comm_i))$
+  \EndFor
+  \State $\texttt{sorted} = [b'_{j_1}, b'_{j_2}, ...] \gets \texttt{Sort}_{\mathrm{TFHE}}([b'_1, b'_2, ...])$
+  \State \Return first $k$ elements of $\texttt{sorted}$
+\end{algorithmic}}}
+\end{center}
+\caption{Simple Sorting Evaluation}
+\label{alg:simpleSortEval}
+\end{figure}
+
+
+\begin{enumerate}
+  \item \textbf{Setup}: Same exact setup with TFHE in SSLE. Setup TFHE and distribute shares.
+  Each party also has some secret $s_i$ and commitment $\comm_i = \comm(s_i)$.
+  \item \textbf{Publish Bid}: Each party samples $r_i \leftarrow U$ and publish $b_i = (\Enc(r_i), \Enc(\comm_i))$.
+  \item \textbf{Evaluation}: This is done by one party whom may even be an external party. See \cref{alg:simpleSortEval} for details
+  \item \textbf{Decoding}: At least $t$ parties publish their threshold decryptions of the return from the evaluation (TODO: is this how TFHE works...)
+  \item \textbf{Proving}: For a party $i$ to prove that they are the selected leader for the $j$th slot, they prove that they know the secret to produce $\comm_i$
+  where $\comm_i$ is the decrypted commitment for the $i$th slot
+\end{enumerate}
+
+\subsection{Distributed/ Streaming Simple Sorting}
+Assume that $n, k$ are a power of 2. We will keep a lot of the same from sorting
+but now look at selection as a sort of tournament. For completeness, we will write out each step again
+
+\algrenewcommand\algorithmicrequire{\textbf{Input:}}
+\algrenewcommand\algorithmicensure{\textbf{Output:}}
+
+\begin{figure}
+\begin{center}
+\fbox{\parbox{12cm}{
+\begin{algorithmic}
+  % TODO: how to name?
+  % Name evalStream
+  \Require $L$, set of $(\texttt{bid}, \texttt{level})$ pairs. New bid and level, $(b, \ell)$
+  \Ensure New list $L$ with remaining evaluations
+
+  \If {$\text{there is some for some }b', (b', \ell) \in L$}
+    \State $\alpha \gets \texttt{ROM}(b, b', \ell)$
+    \State $\overline{b} \gets \texttt{game}(b, b')$ % TODO: defn winning alg
+    \State $L' \gets L \setminus \set{(b', \ell)}$
+    \State \Return $\texttt{EvalStream}(L', (\overline{b}, \ell + 1))$
+  \Else
+  \State $L' \gets L \bigcup \set{(b, \ell)}$
+  \State \Return $L'$
+  \EndIf
+\end{algorithmic}}}
+\end{center}
+\caption{Simple Sorting Evaluation}
+\label{alg:distrEval}
+\end{figure}
+
+
+
+
+\begin{enumerate}
+  \item \textbf{Setup}: Same exact setup with TFHE in SSLE. Setup TFHE and distribute shares.
+  Each party also has some secret $s_i$ and commitment $\comm_i = \comm(s_i)$.
+  \item \textbf{Publish Bid}: Each party samples $r_i \leftarrow U$ and publish $b_i = (\Enc(r_i), \Enc(\comm_i))$.
+  \item \textbf{Evaluation}: This step is different than that in the simple sorting version (\cref{sec:simpleSort}).
+  Now, we can evaluate in a streaming fashion and even distribute evaluation (though we'll not go into details about the distributed implementation).
+
+  \item \textbf{Decoding}: At least $t$ parties publish their threshold decryptions of the return from the evaluation (TODO: is this how TFHE works...)
+  \item \textbf{Proving}: For a party $i$ to prove that they are the selected leader for the $j$th slot, they prove that they know the secret to produce $\comm_i$
+  where $\comm_i$ is the decrypted commitment for the $i$th slot
+\end{enumerate}
 
 \bibliographystyle{alpha}
 \bibliography{bib/ref}
