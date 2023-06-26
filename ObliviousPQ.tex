@@ -1,0 +1,157 @@
+\newcommand{\ct}{\texttt{ct}}
+% https://eprint.iacr.org/2016/046.pdf
+% and the functionality that it realizes is one that produces an encrypted random ordered list of the first k bla thingies
+% We will start by describing the functionality of an MPC protocol for restricted computing environments which produces some random output list.
+
+% TODO: ideal functionality
+\subsection{Oblivious Priority Queue}
+We will make extensive use of an oblivious priority queue which works over FHE.
+
+\newcommand\compInd{\stackrel{\mathclap{\normalfont\mbox{c}}}{\approx}}
+\newcommand{\PQInsert}{\texttt{PQInsert}}
+\newcommand{\PQFront}{\texttt{PQFront}}
+\newcommand{\PQExtractFront}{\texttt{PQExtractFront}}
+\newcommand{\simulator}{\text{Sim}}
+\newcommand{\simulatorPQ}{\text{Sim}_\text{PQ}}
+\newcommand{\PQ}{\texttt{PQ}}
+\newcommand{\hybrid}[1]{\mathrm{\textbf{Hyb}}_{#1}}
+% \newcommand{\simulator}{\mathcal{S}}
+
+\begin{definition}[Oblivious Priority Queue]
+	An oblivious priority queue is a priority queue which can be ``run'' by a party oblivious to the actual
+	messages of the priority queue. More formally, an oblivious priority queue has functionality
+	\begin{itemize}
+		\item $\PQInsert(\ct, \PQ) = \PQ'$ which takes in a cipher text $\ct$ and current priority queue and outputs $\PQ'$ where 
+		the ciphertext is properly inserted into the priority queue according to the underlying plaintext of $\ct$.
+		\item $\PQFront(\PQ) = \ct$ which takes as input a priority queue and outputs the ciphertext $\ct$ who's plaintext is the minimum element in the queue.
+		\item $\PQExtractFront(\PQ) = \ct, \PQ'$ which takes as input a priority queue and outputs the ciphertext with minimum plaintext as well as an updated queue without $\ct$.
+	\end{itemize}
+	We also require that for $N$ elements in $\PQ$, operation $Q \in \set{\PQInsert, \PQFront, \PQExtractFront}$,
+	and input $\ct$ into $Q$ such that there is some simulator, $\simulatorPQ$ where
+	% TODO: latex crypto package
+	\begin{equation}
+		\{\simulatorPQ(1^\lambda, N, Q, \PQ) \} \compInd	\{Q(\PQ, \ct) \}.
+	\end{equation}
+	In words, $\simulatorPQ$ can simulate a distribution of the output $\PQ$ independent of the input element.
+	\LS{I am not quite sure about the above: definitions that I saw are for adaptive adversaries, but we are not adaptive.}
+\end{definition}
+
+\subsection{Multi SLE Algorithm}
+
+For $n$ parties, we want to output a list of $k$ elements where each element is chosen randomly (without replacement) from a set of messages submitted by each party.
+Let the function for each party denote $f_i$ and we will say that $f_i(\Enc(b_1), \Enc(b_2), ..., \Enc(b_n)) = y$ where $y \in \set{\bot, 1, ..., k}$
+such that if $y=a$ then party $i$ is the leader for the $a$th round and if not $y = \bot$.
+
+To build this functionality, we will use an oblivious streaming sampler. We can construct one as follows, closely following \cite{shi2020path} but modifying randomness sampling to use a PRF.
+\begin{itemize}
+	\item When an item, $\ct$, arrives as a TFHE cipher text, we will produce a random value, $\Enc(\alpha)$ by evaluating $\texttt{PRF}(k, \ct)$ in FHE.
+	\item If the item is the $m$-th item and $m \leq k$, insert the item into the queue along with $\alpha$ as its label via $\PQInsert(\ct)$.
+	\item If $m > k$, we will evaluate the PRF (in FHE) to get an encoded random coin which is 1 with probability $1/m$ and 0 otherwise.
+	Then, run \cref{alg:ObIns} which will
+	\begin{itemize}
+		\item replace the smallest labeled item in the queue with the new item if the coin is 1.
+		\item not replace the smallest item in the queue if the coin is 0.
+	\end{itemize}
+	\item At the end of the stream, we output all the items in the priority queue one by one using $\PQExtractFront$.
+\end{itemize}
+The simulation proof follows almost exactly as in \cite{shi2020path} but now we have to deal with the randomness from 
+the PRF rather than public randomness. We can follow the proof directly but add one more hybrid where we replace the output of the PRF with a random oracle in the FHE cipher text space.
+Then, we can use the PRF indistinguishably property to show that the hybrid is indistinguishable from the previous hybrid.\\
+
+We can then implement multi secret leader election via the following algorithm:
+\begin{itemize}
+	\item Each party $i$ will submit a message $\Enc(b_i)$ to the oblivious streaming sampler for some secret $b_i$ which is a commitment to a secret known only by party $i$.
+	\item After all parties submitted there messages, the oblivious streaming sampler will output a list of $k$ messages: $\Enc(b_{a_1}), \Enc(b_{a_2}), ..., \Enc(b_{a_k})$.
+	\item Then, at least $t$ parties will submit decryption shares to decrypt $\Enc(b_{a_1}), ..., \Enc(b_{a_k})$.
+	\item Each party will then build check if they one an election by seeing if their commitment is in the list of decrypted messages.
+	A party can then prove that they won an election $a$ by showing that they know the opening to $b_a$.
+\end{itemize}
+
+\begin{algorithm}
+	\caption{Oblivious Gated Insert}
+	\label{alg:ObIns}
+	\begin{algorithmic}
+		\Require $\Enc(\text{coin}), \PQ, \ct_a$
+		\Ensure $\PQ$'
+		\State $\ct_b, \PQ' \gets \PQExtractFront(\PQ)$
+		\State $\ct_{\text{new}} = \Enc(\text{coin}) \cdot \ct_a + (\Enc(\text{coin}) - 1) \cdot \ct_b$
+		\State \Return $\PQInsert(ct_{\text{new}})$
+	\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Correctness}
+For correctness, we want to show that for each of the $k$ elections, a unique leader is chosen for each round
+and that the probability of being selected leader is uniform out of the potential leaders.
+
+More formally, let $E_i$ be the event in which party $i$ is elected for some election and
+$E_{a, i}$ be the event which party $i$ is elected for the $a$-th election. We want 
+\begin{align}
+	&\Pr\left[E_i\right] = \frac{k}{n},\\
+	&\Pr\left[E_{a, i} \mid E_i\right] = \frac{1}{k},\\
+	&\Pr\left[E_{b, i} \mid E_{a, i}\right] = 0.
+\end{align}
+where $b \neq a, b \in [k]$.
+\LS{I think that here we can prove the uniqueness and fairness property of multi-leader election}
+\begin{theorem}[Correctness]
+We have correctness...	
+\begin{proof}
+	By definition... should be pretty easy to show.
+\end{proof}
+\end{theorem}
+\subsection{Simulation Security}
+We will show security in a semi-honest model via simulation. We will show that each user's view of the protocol can be simulated by a polynomial-time algorithm that only has access to the user's input.
+Note that view of publishing a message is the same as the view of as each user publishing a random LWE ciphertext assuming the TFHE is secure.
+\\Then, upon evaluation, we need to show that the oblivious queue can be simulated.
+Note that every step in the oblivious queue algorithm which does not involve $b_i$ involves manipulating
+TFHE samples under a secret key unknown to the simulator. Thus, we can simulate all steps not involving $b_i$.
+Every step in the oblivious queue algorithm which involves $b_i$ and some $b_j$, for $i \neq j$ requires 
+a homomorphic evaluation where one of the inputs in encrypted under a secret key unknown to the simulator.
+Thus, by the security of TFHE, the output of any of these steps is indistinguishable from a using a $b_j$ encoding a different message.
+
+\subsubsection*{Proof of Simulation Security}
+More formally, $\forall i \in [n]$, we can create a simulator, $\simulator_i$, which takes as input 
+the user's secret value $b_i$ and publishes random TFHE encrypted message, $\Enc(b_j)$ for all $j \neq i$, for all other parties such that
+\begin{equation}
+	\label{eq:simulator}
+	\{\simulator_i(1^\lambda, s_i, \comm_i, r_i, f_i(\Enc(b_1), ..., \Enc(b_n))\} \compInd \{\texttt{view}^\pi_1(s_i, \comm_i, r_i, y)\} 
+\end{equation}
+with non-negligible probability.
+
+To achieve \cref{eq:simulator}, the simulator simply follows a simple procedure
+\begin{enumerate}
+	\item The simulator randomly samples $b_j$ for all $j \neq i$
+	\item The simulator uses $\simulatorPQ$ to simulate the oblivious streaming sampler for all inputs $\Enc(b_j)$ for $j \neq i$.
+	For input $\Enc(b_i)$, the simulator honestly runs the oblivious streaming sampler.
+	\item After all $n$ parties have submitted their inputs, the simulator runs the oblivious streaming sampler to get the outputs $\Enc(b_{a_1}),... \Enc(b_{a_k})$.
+	\item If the output of the oblivious streaming sampler 
+	\item If $y \neq \bot$, the simulator then ``decrypts'' $\Enc(b_{a_y})$ to get $b_i$ and also pretends to decrypt the rest of the $\Enc(b_{a_j})$'s by setting the decryption to a random value.
+	It $y = \bot$, then the simulator will ``decrypt'' all $\Enc(b_{a_j})$'s to random values.
+	\item The simulator simply outputs the view of the protocol with the ``decryptions'' of $\Enc(b_j)$'s.
+\end{enumerate}
+
+We will now show that the above indeed is a polynomial time simulator with overwhelming probability.
+\begin{lemma}
+	The above algorithm satisfies the computational indistinguishably requirment of \cref{eq:simulator}.
+	\begin{proof}
+		First we will show that $\mathcal{S}_i$ runs in polynomial time. There are only $k + 1$ possible outcomes for $y$,
+		each with inverse polynomial probability. Thus, with overwhelming probability, the simulator can sample the $b_i$'s where the outcome is $y$.
+
+		We now show simulatability via hybrids.
+		Note that by the fairness property, the simulator has a non-negligible probability of being the true winner of the election.
+		Thus, we will assume that the simulator is the true winner of election $y$ if $y \neq \bot$. If $y = \bot$, then we assume that $i$ did not win any election.
+		Moreover, we also have that the encoded FHE elements (where party $i$ does not know the plaintext)
+		are indistinguishable from encodings of random elements. We will now construct our hybrids:
+		
+		$\hybrid{1}$: Consider a hybrid where we replace the FHE encoded elements, $\Enc(b_j)$ for $j \neq i$ with random elements.
+		By definition of IND-CPA security, this is indistinguishable from the original hybrid. We can then propogate the output of the oblivious priority queue
+		to use these random elements.
+
+		$\hybrid{2}$: Consider a hybrid where we replace the TFHE decoding of all elements which do not equal to $y$ with a random value.
+		As the $b_j$ for $i \neq i$ are random, this hybrid is indistinguishable from the previous hybrid.
+
+		$\hybrid{3}$: Consider a hybrid where we replace the the output of the priority queue with the output from simulating the priority queue with the random FHE encoded elements.
+		
+		Note that $\hybrid{3}$ is indistinguishable from the original hybrid and is the same as the output of the simulator.
+	\end{proof}
+\end{lemma}
