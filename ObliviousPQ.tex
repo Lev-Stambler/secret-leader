@@ -114,7 +114,7 @@ More formally, $\forall i \in [n]$, we can create a simulator, $\simulator_i$, w
 the user's secret value $b_i$ and publishes random TFHE encrypted message, $\Enc(b_j)$ for all $j \neq i$, for all other parties such that
 \begin{equation}
 	\label{eq:simulator}
-	\{\simulator_i(1^\lambda, s_i, \comm_i, r_i, f_i(\Enc(b_1), ..., \Enc(b_n))\} \compInd \{\texttt{view}^\pi_1(s_i, \comm_i, r_i, y)\} 
+	\{\simulator_i(1^\lambda, s_i, \comm_i, r_i, f_i(\Enc(b_1), ..., \Enc(b_n))\} \compInd \{\texttt{view}^\pi_1(b_i, y)\} 
 \end{equation}
 with non-negligible probability.
 
@@ -124,9 +124,8 @@ To achieve \cref{eq:simulator}, the simulator simply follows a simple procedure
 	\item The simulator uses $\simulatorPQ$ to simulate the oblivious streaming sampler for all inputs $\Enc(b_j)$ for $j \neq i$.
 	For input $\Enc(b_i)$, the simulator honestly runs the oblivious streaming sampler.
 	\item After all $n$ parties have submitted their inputs, the simulator runs the oblivious streaming sampler to get the outputs $\Enc(b_{a_1}),... \Enc(b_{a_k})$.
-	\item If the output of the oblivious streaming sampler 
-	\item If $y \neq \bot$, the simulator then ``decrypts'' $\Enc(b_{a_y})$ to get $b_i$ and also pretends to decrypt the rest of the $\Enc(b_{a_j})$'s by setting the decryption to a random value.
-	It $y = \bot$, then the simulator will ``decrypt'' all $\Enc(b_{a_j})$'s to random values.
+	\item The simulator then pretends to ``decrypt'' $\Enc(b_{a_j})$ to get $b_{a_j}$ by setting the decryptions to a random value
+	for $j \neq y$. If $y \neq \bot$, then the simulator sets the decryption of $b_{a_y} = b_i$.
 	\item The simulator simply outputs the view of the protocol with the ``decryptions'' of $\Enc(b_j)$'s.
 \end{enumerate}
 
@@ -134,24 +133,25 @@ We will now show that the above indeed is a polynomial time simulator with overw
 \begin{lemma}
 	The above algorithm satisfies the computational indistinguishably requirment of \cref{eq:simulator}.
 	\begin{proof}
-		First we will show that $\mathcal{S}_i$ runs in polynomial time. There are only $k + 1$ possible outcomes for $y$,
-		each with inverse polynomial probability. Thus, with overwhelming probability, the simulator can sample the $b_i$'s where the outcome is $y$.
-
+		First note that the above algorithm runs in polynomial time by inspection.
+		
 		We now show simulatability via hybrids.
-		Note that by the fairness property, the simulator has a non-negligible probability of being the true winner of the election.
-		Thus, we will assume that the simulator is the true winner of election $y$ if $y \neq \bot$. If $y = \bot$, then we assume that $i$ did not win any election.
-		Moreover, we also have that the encoded FHE elements (where party $i$ does not know the plaintext)
+		Note that we have that the encoded FHE elements (where party $i$ does not know the plaintext)
 		are indistinguishable from encodings of random elements. We will now construct our hybrids:
 		
-		$\hybrid{1}$: Consider a hybrid where we replace the FHE encoded elements, $\Enc(b_j)$ for $j \neq i$ with random elements.
+		$\hybrid{1}$: Consider a hybrid where we replace the FHE encoded elements, $\Enc(b_j)$ for $j \neq i$ with random ciphertexts.
 		By definition of IND-CPA security, this is indistinguishable from the original hybrid. We can then propogate the output of the oblivious priority queue
 		to use these random elements.
 
-		$\hybrid{2}$: Consider a hybrid where we replace the TFHE decoding of all elements which do not equal to $y$ with a random value.
-		As the $b_j$ for $i \neq i$ are random, this hybrid is indistinguishable from the previous hybrid.
+		$\hybrid{2}$: Consider a hybrid where we replace the TFHE decoding of all winning elements which are not for the $y$-th round with a random value.
+		As the $b_j$ for $j \neq i$ are random, this hybrid is indistinguishable from the previous hybrid.
 
-		$\hybrid{3}$: Consider a hybrid where we replace the the output of the priority queue with the output from simulating the priority queue with the random FHE encoded elements.
+		$\hybrid{3}$: Consider a hybrid where, if $y \neq \bot$, we replace $\Enc(b_{a_y})$ with some random cipher text. Note that because party 
+		$i$ is not able to decrypt and arbitrary ciphertext, this hybrid is indistinguishable from the previous hybrid.
+
+		$\hybrid{4}$: Consider a hybrid where we replace the the output of the priority queue with the output from simulating the priority queue with the random FHE encoded elements.
+		Again, due to the IND-CPA property of FHE, this hybrid is also indistinguishable from the previous hybrid.
 		
-		Note that $\hybrid{3}$ is indistinguishable from the original hybrid and is the same as the output of the simulator.
+		Note that $\hybrid{4}$ is indistinguishable from the original hybrid and is the same as the output of the simulator.
 	\end{proof}
 \end{lemma}
