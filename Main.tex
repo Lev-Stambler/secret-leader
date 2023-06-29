@@ -2,6 +2,7 @@
 \usepackage{Custom}
 % \usepackage{algorithmic}
 \usepackage{CSTheoryToolkitCMUStyle}
+\usepackage{adjustbox}
 \usepackage{cryptocode}
 \usepackage{cleveref}
 
@@ -35,6 +36,9 @@
 \newcommand{\Enc}{\texttt{Enc}_{\mathrm{TFHE}}}
 \newcommand{\Dec}{\texttt{Dec}_{\mathrm{TFHE}}}
 \newcommand{\LS}[1]{\textcolor{red}{LS: #1}}
+\newcommand{\compInd}{\stackrel{\mathclap{\normalfont\mbox{c}}}{\approx}}
+\newcommand{\simulator}{\text{Sim}}
+\newcommand{\simulatorPQ}{\text{Sim}_\text{PQ}}
 
 \algrenewcommand\algorithmicrequire{\textbf{Input:}}
 \algrenewcommand\algorithmicensure{\textbf{Output:}}
@@ -152,8 +156,9 @@ For completeness, we will write out each step again
 	      where $\comm_i$ is the decrypted commitment for the $i$th slot
 \end{enumerate}
 
-\section{Oblivious PQ}
-\input{ObliviousPQ.tex}
+% \section{Oblivious PQ}
+% \input{ObliviousPQ.tex}
+\input{SemiHonest2.tex}
 
 \bibliographystyle{alpha}
 \bibliography{bib/ref}
