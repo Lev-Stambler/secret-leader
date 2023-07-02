@@ -84,7 +84,6 @@ where $(p_i, x_i)$ is the $i$th submitted message to the priority queue.
 A streaming sampler should output a random subset of size $k$ from a stream of $n$ elements with a random ordering.
 We can build a streaming sampler from a priority queue as follows:
 
-% TODO: put in the simple streaming sampler
 
 \begin{algorithm}
 	\caption{Encrypted Gated Insert}
@@ -131,7 +130,7 @@ outputted cipher text is associated with which inputted cipher text.
 \begin{lemma}
 	Our construction of a streaming sampler is sound.
 	\begin{proof}
-		TODO: this should not be too bad
+		% TODO: this should not be too bad
 	\end{proof}
 \end{lemma}
 
@@ -162,8 +161,7 @@ functionality of single secret leader election of \LS{CITE}.
 	\label{fig:my_label}
 \end{figure}
 
-We wil realize MSLE via the following protocol:
-\begin{figure}[ht]
+\begin{figure}
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
@@ -209,8 +207,6 @@ We wil realize MSLE via the following protocol:
 	\label{fig:protocolMSLE}
 \end{figure}
 
-\subsection{Correctness}
-
 \subsection{Simulation Security}
 To show simulation security, we will prove that, given a party's input and output in the ideal model,
 a simulator can simulate the distribution of the view in the protocol for the party. Note that because the
@@ -251,15 +247,17 @@ and
 		Then, we have the simulator proceed in the following manner:
 		\begin{enumerate}
 			\item The simulator sets a random, local tape
-			% \item The simulator samples $b_j$ for all $j \neq i$ where $b_j$ is a commitment to a random value
-			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n)$
+			% TODO: question, are these c_js part of the protocol/ commitment or is it valid to do these samples?
+			% (I.e. they are not messages)...
+			\item The simulator samples $c_j$ for all $j \neq i$ where $c_j$ is a commitment to a random value
+			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n) = \Enc(\texttt{PRF}(r, s_\texttt{TFHE}))$
 			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c_j)$ for $j \in [i]$.
 			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c_{a_1}),... \Enc(c_{a_k})$.
 			\item The simulator then chooses a random, ordered subset $S \subseteq [n]$ where $|S| = k$. 
 			If there is some $w$ such that $S_w = i$, then set $y = w$. Otherwise, set $y = \bot$.
-			\item The simulator then sets the decryptions of $\Enc(c_{a_\ell})$ for $\ell \neq y$ to $b_\ell$ where $b_\ell$ is a commitment to a random value.
-			The simulator also creates shares $\sigma_j$ such that the shares decrypt to the $b_\ell$.
-			\item The simulator then outputs $y$ is $P_i$ won an election
+			\item The simulator then sets the decryptions of $\Enc(c_{a_\ell})$ for $\ell \neq y$ to $c_{S_\ell}$.
+			The simulator also creates shares $\sigma_j$ such that $\Enc(c_{a_\ell})$ decrypts to $c_{S_\ell}$.
+			\item The simulator then outputs $y$
 			
 		\end{enumerate}
 		We now use a sequence of hybrids to show that the view of the real protocol is indistinguishable from
