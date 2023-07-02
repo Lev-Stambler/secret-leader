@@ -1,67 +1,139 @@
 \newcommand{\idealMSLE}{\mathcal{F}_{\text{MSLE}}}
 \newcommand{\idealStreamSample}{\mathcal{F}_{\text{SAMPLE}}}
+\newcommand{\hybrid}[1]{\mathrm{\textbf{Hyb}}_{#1}}
 \newcommand{\eid}{{eid}}
+\newcommand{\init}{\texttt{initialize}}
 \newcommand{\register}{\texttt{register}}
 \newcommand{\elect}{\texttt{elect}(\eid)}
-\newcommand{\reveal}{\texttt{reveal}(\eid, a)}
+\newcommand{\reveal}{\texttt{reveal}(\eid, \ell)}
+\newcommand{\extractMin}{\texttt{ExtractMin}}
+\newcommand{\getMin}{\texttt{GetMin}}
+\newcommand{\ct}{\texttt{ct}}
+
+\newcommand{\PQInsert}{\texttt{PQ.Insert}}
+\newcommand{\PQExtract}{\texttt{PQ.ExtractFront}}
+\newcommand{\PQFront}{\texttt{PQ.Front}}
+\newcommand{\PQ}{\texttt{PQ}}
+
+\newcommand{\EncPQInsert}{\texttt{EncPQ.Insert}}
+\newcommand{\EncPQExtract}{\texttt{EncPQ.ExtractFront}}
+\newcommand{\EncPQFront}{\texttt{EncPQ.Front}}
+
+
+\newcommand{\EncPQ}{\texttt{EncPQ}}
 
 \section{Data Independent Streaming Sampler}
 \label{sec:streaming_sampler}
 Our construction makes heavy use of a data independent streaming sampler which we will define below.
 The streaming sampler relies on a data independent priority queue and in turn makes use of \LS{Cite Shi} protocol for an oblivious priority queue.
 
-\subsection*{Data Independent Queue Ideal Functionality}
+\subsection*{
+	Encrypted Data Independent Queue
+}
+In this work, we will data independent queues as studied in \cite{toft2011secure, mitchell2014data, mazloom2023efficient}.
+Data independent data structures are unique as their control flow and memory access do not depend on input data (\cite{mitchell2014data}).
 
-\begin{figure}[ht]
-	\centering
-	\fbox{
-		\begin{minipage}{1\textwidth}
-			\textbf{Encrypted Data Independent Queue Ideal Functionality} $\idealMSLE$:
-			Initialize $L$ to be an empty list
-			\begin{itemize}
-				\item $\texttt{Insert}(\Enc(p), \Enc(x))$ upon receiving $(\Enc(p), \Enc(x))$, place $(\Enc(p), \Enc(x))$
-				into an initially empty list $L$ and broadcast $(\Enc(p), \Enc(x))$ to all parties as well as termination of insert.
-				\item $y \gets \texttt{ExtractMin}()$ Delete $(\Enc(p), \Enc(x))$ with the lowest $p$ value.
-				Then, set $y$ to be a re-encryption of $x$ such that $y$ is indistinguishable from all other elements in $L$.
+They are especially useful as they allow for efficient computation within FHE as control flow is not dependent
+on underlying ciphertexts. We use a data independent queue as outlined in \cite{mazloom2023efficient}
+which allows for
+\begin{itemize}
+	\item $\PQInsert$: Inserts a tag and value, $(p, x)$ into $\PQ$ according to the tag's priority.
+	\item $\PQExtract$: Removes and returns the $(p, y)$ with highest tag priority.
+	\item $\PQFront$: Returns the $(p, y)$ with highest tag priority without removing the element.
+\end{itemize}
+Moreover, we note that the order is stable. I.e.\ the first inserted among equal tagged elements has a higher priority.
 
-				\item $y \gets \texttt{GetMin}()$ Get $(\Enc(p), \Enc(x))$ with the lowest $p$ value.
-				Then, set $y$ to be a re-encryption of $x$ such that the encryption of $x$ and $y$ are indistinguishable.
-			\end{itemize}
-		\end{minipage}
-	}
-	\caption{Description of the MSLE functionality, heavily based on the description of SSLE in \LS{CITE Dario and CFG21}}.
-	\label{fig:dataIndepQ}
-\end{figure}
-% https://eprint.iacr.org/2011/081.pdf
-% See page 8, extend 
+We will use the data independent queue within public key threshold FHE such that we now have an encrypted priority queue, $\EncPQ$
+with functionality
+\begin{itemize}
+	\item $\EncPQInsert$: Inserts a tag and value, $\Enc(p, x)$ into $\PQ$ according to the tag's priority.
+	\item $\EncPQExtract$: Removes and returns the $\Enc(p, y)$ with highest tag priority.
+	\item $\EncPQFront$: Returns the $\Enc(p, y)$ with highest tag priority without removing the element.
+\end{itemize}
 
-\subsection*{Streaming Sampler Ideal Functionality}
-The ideal functionality of a data independent sampler is given by $\idealStreamSample$ (TODO: cite Elaine)
-which outputs a random subset of size $k$ from a stream $S$ with a random ordering.
+We further require that for $\Enc(p, y) \gets \EncPQExtract$ (and $\EncPQFront$) and $x_1, ..., x_n$ drawn from a random distribution,
+\begin{align}
+	\label{eq:gameEncPQ}
+	\Bigl\lvert \Pr[\advers\left(x_1, \dots x_n, \Enc(p_1, x_1), ..., \Enc(p_n, x_n), \Enc(p, y), i\right) = 1] \\
+		- \Pr[\Dec(\Enc(p, y)) = (p_i, x_i)] \Bigr\rvert \leq \negl(\lambda) \notag
+\end{align}
+where $(p_i, x_i)$ is the $i$th submitted message to the priority queue.
 
-\begin{figure}[ht]
-	\centering
-	\fbox{
-		\begin{minipage}{1\textwidth}
-			\textbf{Encrypted Data Independent Streaming Sampler Ideal Functionality} $\idealMSLE$:
-			Initialize $L$ to be an empty list
-			\begin{itemize}
-				\item $\texttt{Insert}(\Enc(x))$ upon receiving $\Enc(x)$, place $\Enc(x)$
-				into an initially empty list $L$ 
-				\item $S \gets \texttt{Sample}()$ Randomly sample an ordered and re-encrypted subset $S \subseteq L$ such that $|S| = k$, $S$ has a random ordering
-				and $S_a$ is indistinguishable from all elements in $L$.
-			\end{itemize}
-		\end{minipage}
-	}
-	\caption{Description of ideal sampling functionality}.
-	\label{fig:samplerIdeal}
-\end{figure}
-%
+\begin{lemma}
+	Assuming the indistinguishablity of TFHE cipher texts, $\Enc(m_1), \Enc(m_2)$ where $m_1 \neq m_2$ and are known to the adversary, \cref{eq:gameEncPQ} holds.
 
-\subsection*{Protocol for Streaming Sampler}
-This protocol is identical to that of (TODO: cite Elaine) except that the 
-we replace the oblivious queue with the stronger notion of a data independent queue and public coin randomness
-with randomness generated within a PRF.
+	\begin{proof}
+		Assume towards contradiction that there exists an adversary $\advers$ which can distinguish between a random 
+		message to the priority queue and the output of $\EncPQExtract$ (resp. $\EncPQFront$).
+		Then, we can construct an adversary $\advers'$ which can distinguish TFHE cipher text, $\ct_1 = \Enc(m_1), \ct_2 = \Enc(m_2)$, as follows:
+		\begin{enumerate}
+			\item $\advers'$ simulates an encrypted priority queue, $\EncPQ$.
+			\item $\advers'$ inserts $x' = \Enc(\ct_1, r_1)$ into $\EncPQ$ and then $x = \Enc(\ct_2, r_2)$ into $\EncPQ$
+			where $r_1, r_2$ are random.
+			\item The adversary then calls $\Enc(p, y) \gets \EncPQExtract$ (resp. $\EncPQFront$) and uses $\advers$ to distinguish between $x$ and $x'$.
+			\item If $\Enc(p, y) = x'$ output $m_1$, otherwise output $m_2$.
+		\end{enumerate}
+		Clearly, if the adversary can distinguish the priority queue outcomes, then using $\advers$, he can with non-negligible probability
+		distinguish encryptions of $m_1$ and $m_2$ as, WLOG, $m_1 > m_2$ remains constant. An identical approach can then be taken
+		to distinguish between encryptions of $m_1, ..., m_n$ except where the adversary inserts $m_1, ..., m_n$ into the queue and dequeues all items.
+	\end{proof}
+\end{lemma}
+
+
+\subsection*{Encrypted Streaming Sampler}
+A streaming sampler should output a random subset of size $k$ from a stream of $n$ elements with a random ordering.
+We can build a streaming sampler from a priority queue as follows:
+
+% TODO: put in the simple streaming sampler
+
+\begin{algorithm}
+	\caption{Encrypted Gated Insert}
+	\label{alg:EncIns}
+	\begin{algorithmic}
+		\Require $\Enc(\text{coin}), \EncPQ, \ct_a$
+		\Ensure $\EncPQ$'
+		\State $\ct_b \gets \EncPQExtract(\PQ)$
+		\State $\ct_{\text{new}} = \Enc(\text{coin}) \cdot \ct_a + (\Enc(\text{coin}) - 1) \cdot \ct_b$
+		\State $\EncPQInsert(ct_{\text{new}})$
+		\State \Return $\EncPQ$
+	\end{algorithmic}
+\end{algorithm}
+
+We will use a slightly modified version of a streaming sampler where randomness is submitted alongside the message.
+We can then implement the algorithm as follows
+\begin{itemize}
+	\item $\texttt{Insert}(\ct_i, \Enc(e_i))$ where $\ct_i$ is a cipher text and $\Enc(e_i)$ is encrypted randomness
+	\begin{itemize}
+		\item If the item is the $m$-th item and $m \leq k$, insert the item into the queue along with $e_i$ as its tag via $\EncPQInsert(\Enc(e_i), \ct)$.
+		\item If $m > k$, we will evaluate the PRF (in FHE) to get an encoded random coin which is 1 with probability $1/m$ and 0 otherwise.
+		Then, run \cref{alg:EncIns} which will
+		\begin{itemize}
+			\item replace the smallest labeled item in the queue with the new item if the coin is 1.
+			\item not replace the smallest item in the queue if the coin is 0.
+		\end{itemize}
+	\end{itemize}
+
+	\item At the end of the stream, we output all the items in the priority queue, $\ct_{a_1} ... \ct_{a_k}$ in order
+	 by repeatably calling $\EncPQExtract$.
+	
+\end{itemize}
+
+We can formalize soundness as a game as follows, for all $\ell \in [k], i \in [n]$,
+\begin{align}
+	\Bigl\lvert 
+		\Pr[\advers(\ct_1, \dots, \ct_n, e_1, \dots, e_n, \ct_{a_1}, \dots, \ct_{a_k}, \ell, i) = 1] \\
+		- \Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)]
+	\Bigr\rvert \leq \negl(\lambda) \notag
+\end{align}
+In words, the adversary should not be able to guess with any advantage which of the $\ell$-th 
+outputted cipher text is associated with which inputted cipher text.
+
+\begin{lemma}
+	Our construction of a streaming sampler is sound.
+	\begin{proof}
+		TODO: this should not be too bad
+	\end{proof}
+\end{lemma}
 
 \section{MSLE Protocol}
 \label{sec:msle_protocol}
@@ -75,14 +147,14 @@ functionality of single secret leader election of \LS{CITE}.
 			\textbf{The MSLE functionality} $\idealMSLE$:
 			Initialize $E, R \gets \emptyset, \gets 0$. Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
 			\begin{itemize}
-				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $n \gets n + 1$
+				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n\}$, broadcast $(\texttt{register}, i)$ to all parties and set $n \gets n + 1$
 				\item $\elect$ $k$ leaders from all honest parties. If $|R| \geq k$ and $\eid$ was not requested before,
-				randomly sample $W^{\eid} \subseteq R$ where $|W^{\eid}| = k$.
-				Then, assign a random ordering to $W^\eid$ to get ordered set $E^\eid$.
-				Next, send $(\texttt{outcome}, \eid, a)$ to $P_j$ for all $E^\eid_a = (j, \cdot)$
-				and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $(i, \cdot) \notin E^\eid$. Store $E \gets E \bigcup \{E^\eid\}$.
-				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_a$, broadcast $(\texttt{result}, \eid, a, i)$.
-				Otherwise, broadcast $(\texttt{rejected}, \eid, a, i)$.
+				      randomly sample $W^{\eid} \subseteq R$ where $|W^{\eid}| = k$.
+				      Then, assign a random ordering to $W^\eid$ to get ordered set $E^\eid$.
+				      Next, send $(\texttt{outcome}, \eid, a)$ to $P_j$ for all $E^\eid_a = (j, \cdot)$
+				      and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $(i, \cdot) \notin E^\eid$. Store $E \gets E \bigcup \{E^\eid\}$.
+				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_a$, broadcast $(\texttt{result}, \eid, \ell, i)$.
+				      Otherwise, broadcast $(\texttt{rejected}, \eid, \ell, i)$.
 			\end{itemize}
 		\end{minipage}
 	}
@@ -90,20 +162,58 @@ functionality of single secret leader election of \LS{CITE}.
 	\label{fig:my_label}
 \end{figure}
 
-We wil realize MSLE via the following algorithm:
-\begin{itemize}
-	\item Each party $i$ will submit a message $\Enc(b_i)$ to the oblivious streaming sampler for some secret $b_i$ which is a commitment to a secret known only by party $i$.
-	\item After all parties submitted there messages, the oblivious streaming sampler will output a list of $k$ messages: $\Enc(b_{a_1}), \Enc(b_{a_2}), ..., \Enc(b_{a_k})$.
-	\item Then, at least $t$ parties will submit decryption shares to decrypt $\Enc(b_{a_1}), ..., \Enc(b_{a_k})$.
-	\item Each party will then build check if they won an election by seeing if their commitment is in the list of decrypted messages.
-	A party can then prove that they won an election $a$ by showing that they know the opening to $b_a$.
-\end{itemize}
+We wil realize MSLE via the following protocol:
+\begin{figure}[ht]
+	\centering
+	\fbox{
+		\begin{minipage}{1\textwidth}
+			\textbf{The MSLE Protocol} $\pi_{\text{MSLE}}$:
+			Initialize $n = 0$. Fix some $k \in \N$ to denote the number of rounds.
+			Also, sample ;
+			this will be the key FHE to the PRF.
+
+			\begin{itemize}
+				\item $\init$
+				\begin{itemize}
+					\item Set $n = 0$
+					\item Sample some secret $s_{\texttt{TFHE}}$ and publicly publicly publish $\Enc(s_{\texttt{TFHE}})$.
+					This will be the key to the PRF
+					\item Initialize an empty set $C$, containing all party's registered commitments.
+				\end{itemize}
+
+				\item $\register(\Enc(c_i))$ from $P_i$ where $c_i = \comm(s_i, r_i)$ for secret $s_i$ and secret randomness $r_i$,
+				\begin{itemize}
+					\item If party $P$ does not already have a TFHE share, create a TFHE share for $P_i$.
+					\item Add $\Enc(c_i)$ to $C$.
+					\item $n \gets n + 1$
+				\end{itemize}
+				\item $\elect$ $k$  
+					\begin{itemize}
+						\item An encrypted streaming sampler will be publicly initialized
+						\item Public randomness, $r$ will be sampled to and used in the encrypted PRF to get random $\Enc(e_1), ..., \Enc(e_n)= \Enc(\texttt{PRF}(r, s_\texttt{TFHE}))$
+						\item All $c_i \in C$ will be fed to the encrypted streaming sampler along with randomness $\Enc(e_i)$ 
+						\item The encrypted streaming sampler will output a list of $k$ messages: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
+						\item Then, at least $t$ parties will submit decryption shares to get $c_{a_1}, ..., c_{a_k}$.
+						\item Each party will then check if they won an election by seeing if their commitment is in the list of decrypted messages.
+					\end{itemize}
+				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
+					\begin{itemize}
+						\item $P_i$ submits a zero knowledge proof that they know the opening to $c_{a_\ell}$. If this proof verifies,
+						remove $\Enc(c_i)$ from $C$ and add $\Enc(c'_i)$. Then send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
+						Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
+					\end{itemize}
+			\end{itemize}
+		\end{minipage}
+	}
+	\caption{Description of the MSLE protocol}
+	\label{fig:protocolMSLE}
+\end{figure}
 
 \subsection{Correctness}
 
 \subsection{Simulation Security}
 To show simulation security, we will prove that, given a party's input and output in the ideal model,
-a simulator can simulate the distribution of the view in the protocol for the party. Note that because the 
+a simulator can simulate the distribution of the view in the protocol for the party. Note that because the
 protocol is deterministic, it suffices to prove simulation for only the party's output.
 
 More formally we will show that for party $i$,
@@ -124,7 +234,7 @@ and
 \begin{lemma}
 	We will first show that \cref{eq:simSecReg} is simulation secure.
 	\begin{proof}
-		
+
 	\end{proof}
 \end{lemma}
 
@@ -132,6 +242,53 @@ and
 \begin{lemma}
 	We will now show that \cref{eq:simSecElect} is simulation secure.
 	\begin{proof}
+		The view of each party $i$ for $\elect$ can be expressed as
+		\begin{align*}
+			(r_i,  s_i, \Enc(b_{1}), \dots \Enc(b_n), \Enc(r'_1), \dots, \Enc(r'_n), \\
+				\Enc(b_{a_1}), \dots, \Enc(b_{a_k}), \sigma_1, \dots \sigma_t, b_1, \dots, b_n)
+		\end{align*}
+		where $r'_i$ is the randomness from the streaming sampler and $\sigma_1, \dots \sigma_t$ are the decryption shares.
+		Then, we have the simulator proceed in the following manner:
+		\begin{enumerate}
+			\item The simulator sets a random, local tape
+			% \item The simulator samples $b_j$ for all $j \neq i$ where $b_j$ is a commitment to a random value
+			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n)$
+			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c_j)$ for $j \in [i]$.
+			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c_{a_1}),... \Enc(c_{a_k})$.
+			\item The simulator then chooses a random, ordered subset $S \subseteq [n]$ where $|S| = k$. 
+			If there is some $w$ such that $S_w = i$, then set $y = w$. Otherwise, set $y = \bot$.
+			\item The simulator then sets the decryptions of $\Enc(c_{a_\ell})$ for $\ell \neq y$ to $b_\ell$ where $b_\ell$ is a commitment to a random value.
+			The simulator also creates shares $\sigma_j$ such that the shares decrypt to the $b_\ell$.
+			\item The simulator then outputs $y$ is $P_i$ won an election
+			
+		\end{enumerate}
+		We now use a sequence of hybrids to show that the view of the real protocol is indistinguishable from
+		that of the simulated one
+		% \begin{itemize}
+		% 	\item $\hybrid{0}$: The real protocol
+		% 	\item $\hybrid{1}$: As $\hybrid{0}$ but $c_{a_\ell}$ are replaced with $ci'_j$, commitments to random values for $j \neq i$. And 
+		% 	$\Enc(b_j)$ is replaced with $\Enc(b'_j)$.\\
+		% 	% TODO: triple equal sign?
+		% 	$\hybrid{1} \compInd \hybrid{0}$ by the hiding property of commitments.
+
+		% 	\item $\hybrid{2}$: As $\hybrid{1}$ but $\Enc(b_{a_1}),... \Enc(b_{a_k})$ are replaced with
+		% 	$\Enc(b'_{a_1}),... \Enc(b'_{a_k})$, the output of sampling the encrypted streaming sampler with $\Enc(b'_j)$.\\
+		% 	$\hybrid{2} = \hybrid{1}$ as we are running the protocol honestly %TODO:?
+
+		% 	\item $\hybrid{3}$: As $\hybrid{2}$ but, for all $j \neq y$, replace
+		% 	$\Dec(\Enc(b_{a_1})) = b_{S_j}$ by updating $\sigma_1, ... \sigma_t$ where $S \subseteq [n]$,
+		% 	$|S| = k$, and $S_y = i$ if $y \neq \bot$.\\
+		% 	$\hybrid{3} \compInd \hybrid{2}$
+		% 	\item $\hybrid{4}$: If $y \neq \bot$ update the threshold decryption such that $\Dec(\Enc(b_{a_y})) = b_i$. 
+		% 	$\hybrid{4} = \hybrid{3}$
+		% 	% TODO: better define threshold decryption as separate thing
+		% 	% TODO: remove separate ticket registration
+		% 	\item $\hybrid{5}$: The simulated protocol
+		% \end{itemize}
+		% TODO: can I have proof be within bullet points
+			% Question: can a simulator have access to information from prior calls? 
+			% Ohhhhhhhhhhhhhhhh... I see output $y$ has to follow distribution as well.
+
 
 	\end{proof}
 \end{lemma}

@@ -1,0 +1,20 @@
+
+\begin{figure}[ht]
+	\centering
+	\fbox{
+		\begin{minipage}{1\textwidth}
+			\textbf{Encrypted Data Independent Streaming Sampler Ideal Functionality} $\idealMSLE$:
+			Initialize $L$ to be an empty list
+			\begin{itemize}
+				\item $\texttt{Insert}(\Enc(x))$ upon receiving $\Enc(x)$, place $\Enc(x)$
+				      into an initially empty list $L$
+				\item $S \gets \texttt{Sample}()$ Randomly sample an ordered and re-encrypted subset $S \subseteq L$ such that $|S| = k$, $S$ has a random ordering
+				      and $S_a$ is indistinguishable from all elements in $L$.
+			\end{itemize}
+		\end{minipage}
+	}
+	\caption{Description of ideal sampling functionality}.
+	\label{fig:samplerIdeal}
+\end{figure}
+%
+
