@@ -117,11 +117,11 @@ We can then implement the algorithm as follows
 	
 \end{itemize}
 
-We can formalize soundness as a game as follows, for all $\ell \in [k], i \in [n]$,
+We can formalize soundness as a game as follows, for all $\ell \in [k], i, j \in [n]$,
 \begin{align}
 	\Bigl\lvert 
 		\Pr[\advers(\ct_1, \dots, \ct_n, e_1, \dots, e_n, \ct_{a_1}, \dots, \ct_{a_k}, \ell, i) = 1] \\
-		- \Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)] 
+		 - \Pr[\advers(\ct_1, \dots, e_1, \dots, \ct_{a_1}, \dots, \ell, j) = 1]
 	\Bigr\rvert \leq \negl(\lambda) \notag
 \end{align}
 In words, the adversary should not be able to guess with any advantage which of the $\ell$-th 
