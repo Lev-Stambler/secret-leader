@@ -55,27 +55,27 @@ We further require that for $\Enc(p, y) \gets \EncPQExtract$ (and $\EncPQFront$)
 \begin{align}
 	\label{eq:gameEncPQ}
 	\Bigl\lvert \Pr[\advers\left(x_1, \dots x_n, \Enc(p_1, x_1), ..., \Enc(p_n, x_n), \Enc(p, y), i\right) = 1] \\
-		- \Pr[\Dec(\Enc(p, y)) = (p_i, x_i)] \Bigr\rvert \leq \negl(\lambda) \notag
+	 	 - \Pr[\advers\left(x_1, \dots x_n, \Enc(p_1, x_1), ..., \Enc(p_n, x_n), \Enc(p, y), j\right) = 1]
+		 \Bigr\rvert \leq \negl(\lambda) \notag
 \end{align}
-where $(p_i, x_i)$ is the $i$th submitted message to the priority queue.
+where $(p_i, x_i)$ and $(p_j, x_j)$ are the $i$th and $j$th submitted message to the priority queue for $i \neq j$.
 
 \begin{lemma}
-	Assuming the indistinguishablity of TFHE cipher texts, $\Enc(m_1), \Enc(m_2)$ where $m_1 \neq m_2$ and are known to the adversary, \cref{eq:gameEncPQ} holds.
+	Assuming the indistinguishablity of TFHE cipher texts, $\Enc(m_1) \dots \Enc(m_n)$
+	where $m_i \neq m_j$ for $i \neq j$ and are known to the adversary, then \cref{eq:gameEncPQ} holds.
 
 	\begin{proof}
 		Assume towards contradiction that there exists an adversary $\advers$ which can distinguish between a random 
 		message to the priority queue and the output of $\EncPQExtract$ (resp. $\EncPQFront$).
-		Then, we can construct an adversary $\advers'$ which can distinguish TFHE cipher text, $\ct_1 = \Enc(m_1), \ct_2 = \Enc(m_2)$, as follows:
+		Then, we can construct an adversary $\advers'$ which can distinguish TFHE cipher text, $\ct_1 = \Enc(m_1), \dots, \ct_n = \Enc(m_n)$, as follows:
 		\begin{enumerate}
 			\item $\advers'$ simulates an encrypted priority queue, $\EncPQ$.
-			\item $\advers'$ inserts $x' = \Enc(\ct_1, r_1)$ into $\EncPQ$ and then $x = \Enc(\ct_2, r_2)$ into $\EncPQ$
-			where $r_1, r_2$ are random.
-			\item The adversary then calls $\Enc(p, y) \gets \EncPQExtract$ (resp. $\EncPQFront$) and uses $\advers$ to distinguish between $x$ and $x'$.
-			\item If $\Enc(p, y) = x'$ output $m_1$, otherwise output $m_2$.
+			\item $\advers'$ inserts $x_i = \Enc(\ct_i, r_i)$ into $\EncPQ$ for all $i \in [n]$.
+			\item The adversary then calls $\Enc(p, y) \gets \EncPQExtract$ (resp. $\EncPQFront$) and uses $\advers$ to distinguish between $x_1, \dots x_n$.
+			\item Output $m_i$ where $\Enc(p, y) = x_i$.
 		\end{enumerate}
 		Clearly, if the adversary can distinguish the priority queue outcomes, then using $\advers$, he can with non-negligible probability
-		distinguish encryptions of $m_1$ and $m_2$ as, WLOG, $m_1 > m_2$ remains constant. An identical approach can then be taken
-		to distinguish between encryptions of $m_1, ..., m_n$ except where the adversary inserts $m_1, ..., m_n$ into the queue and dequeues all items.
+		distinguish encryptions of $m_1, \dots, m_n$ as the relative ordering of the encryptions is preserved and thus the priority queue repeatably gives the same output.
 	\end{proof}
 \end{lemma}
 
@@ -121,7 +121,7 @@ We can formalize soundness as a game as follows, for all $\ell \in [k], i \in [n
 \begin{align}
 	\Bigl\lvert 
 		\Pr[\advers(\ct_1, \dots, \ct_n, e_1, \dots, e_n, \ct_{a_1}, \dots, \ct_{a_k}, \ell, i) = 1] \\
-		- \Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)]
+		- \Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)] 
 	\Bigr\rvert \leq \negl(\lambda) \notag
 \end{align}
 In words, the adversary should not be able to guess with any advantage which of the $\ell$-th 
@@ -130,7 +130,13 @@ outputted cipher text is associated with which inputted cipher text.
 \begin{lemma}
 	Our construction of a streaming sampler is sound.
 	\begin{proof}
+		By construction of the streaming sampler, we have that $\Pr[a_\ell = i] = 1/n$ and thus $\Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)] = 1/n$.
+		% Now, we need to show that the adversary cannot distinguish between the output of the streaming sampler and a random subset of size $k$.
+		...
+
+
 		% TODO: this should not be too bad
+		% Hmmm.... all randomness (add coins) could be input into the protocol, thus its repeatable?
 	\end{proof}
 \end{lemma}
 
@@ -230,7 +236,15 @@ and
 \begin{lemma}
 	We will first show that \cref{eq:simSecReg} is simulation secure.
 	\begin{proof}
-
+		The view of each party $i$ for $\register$ can be expressed as
+		\begin{equation*}
+			(r_i, s_i, c_i, C, \Enc(c_i), n)
+		\end{equation*}
+		We can create a simulator $\simulator_i$ that takes as input $s_i, r_i, n$ and outputs
+		an indistinguishable view 
+		\begin{enumerate}
+			\item Sample something? Does the simulator have access to C?
+		\end{enumerate}
 	\end{proof}
 \end{lemma}
 
