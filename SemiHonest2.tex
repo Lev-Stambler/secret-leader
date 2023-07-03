@@ -241,48 +241,43 @@ and
 		The view of each party $i$ for $\elect$ can be expressed as
 		\begin{align*}
 			(r_i,  s_i, \Enc(b_{1}), \dots \Enc(b_n), \Enc(r'_1), \dots, \Enc(r'_n), \\
-				\Enc(b_{a_1}), \dots, \Enc(b_{a_k}), \sigma_1, \dots \sigma_t, b_1, \dots, b_n)
+				\Enc(b_{a_1}), \dots, \Enc(b_{a_k}), \sigma_1, \dots \sigma_t, b_1, \dots, b_n, y)
 		\end{align*}
-		where $r'_i$ is the randomness from the streaming sampler and $\sigma_1, \dots \sigma_t$ are the decryption shares.
+		where $r'_i$ is the randomness from the streaming sampler, $\sigma_1, \dots \sigma_t$ are the decryption shares,
+		and $y \in \set{\bot, 1, ..., k}$ representing whether a party won election $1$ through $k$ or not ($\bot$).
 		Then, we have the simulator proceed in the following manner:
 		\begin{enumerate}
 			\item The simulator sets a random, local tape
 			% TODO: question, are these c_js part of the protocol/ commitment or is it valid to do these samples?
 			% (I.e. they are not messages)...
-			\item The simulator samples $c_j$ for all $j \neq i$ where $c_j$ is a commitment to a random value
+			\item The simulator samples $c'_j$ for all $j \neq i$ where $c'_j$ is a commitment to a random value
 			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n) = \Enc(\texttt{PRF}(r, s_\texttt{TFHE}))$
-			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c_j)$ for $j \in [i]$.
-			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c_{a_1}),... \Enc(c_{a_k})$.
+			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c'_j)$ for $j \in [i]$.
+			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c'_{a_1}),... \Enc(c'_{a_k})$.
 			\item The simulator then chooses a random, ordered subset $S \subseteq [n]$ where $|S| = k$. 
-			If there is some $w$ such that $S_w = i$, then set $y = w$. Otherwise, set $y = \bot$.
-			\item The simulator then sets the decryptions of $\Enc(c_{a_\ell})$ for $\ell \neq y$ to $c_{S_\ell}$.
-			The simulator also creates shares $\sigma_j$ such that $\Enc(c_{a_\ell})$ decrypts to $c_{S_\ell}$.
-			\item The simulator then outputs $y$
+			If there is some $w$ such that $S_w = i$, then set $y' = w$. Otherwise, set $y' = \bot$.
+			\item The simulator then sets the decryptions of $\Enc(c'_{a_\ell})$ to $c'_{S_\ell}$.
+			The simulator also creates shares $\sigma_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
+			\item The simulator then outputs $y'$
 			
 		\end{enumerate}
 		We now use a sequence of hybrids to show that the view of the real protocol is indistinguishable from
 		that of the simulated one
-		% \begin{itemize}
-		% 	\item $\hybrid{0}$: The real protocol
-		% 	\item $\hybrid{1}$: As $\hybrid{0}$ but $c_{a_\ell}$ are replaced with $ci'_j$, commitments to random values for $j \neq i$. And 
-		% 	$\Enc(b_j)$ is replaced with $\Enc(b'_j)$.\\
-		% 	% TODO: triple equal sign?
-		% 	$\hybrid{1} \compInd \hybrid{0}$ by the hiding property of commitments.
-
-		% 	\item $\hybrid{2}$: As $\hybrid{1}$ but $\Enc(b_{a_1}),... \Enc(b_{a_k})$ are replaced with
-		% 	$\Enc(b'_{a_1}),... \Enc(b'_{a_k})$, the output of sampling the encrypted streaming sampler with $\Enc(b'_j)$.\\
-		% 	$\hybrid{2} = \hybrid{1}$ as we are running the protocol honestly %TODO:?
-
-		% 	\item $\hybrid{3}$: As $\hybrid{2}$ but, for all $j \neq y$, replace
-		% 	$\Dec(\Enc(b_{a_1})) = b_{S_j}$ by updating $\sigma_1, ... \sigma_t$ where $S \subseteq [n]$,
-		% 	$|S| = k$, and $S_y = i$ if $y \neq \bot$.\\
-		% 	$\hybrid{3} \compInd \hybrid{2}$
-		% 	\item $\hybrid{4}$: If $y \neq \bot$ update the threshold decryption such that $\Dec(\Enc(b_{a_y})) = b_i$. 
-		% 	$\hybrid{4} = \hybrid{3}$
+		\begin{itemize}
+			\item $\hybrid{0}$: The real protocol
+			\item $\hybrid{1}$: As $\hybrid{0}$ but, for all $j \neq i$, $\Enc(c_j)$ are replaced with $\Enc(c'_j)$, where $c'_j$ is a commitment to a random value.
+			We can see that $\hybrid{0} \equiv \hybrid{1}$ by the hiding property of commitments.
+			\item $\hybrid{2}$: As $\hybrid{1}$ but replace $\Enc(c_{a_1}),... \Enc(c_{a_k})$ with
+			$\Enc(c'_{a_1}),... \Enc(c'_{a_k})$, the output of sampling the encrypted streaming sampler with $\Enc(c'_j)$.
+			\item $\hybrid{3}$: As $\hybrid{2}$ but replace $\Dec(\Enc(c'_{a_1})),... \Dec(\Enc(c'_{a_k}))$ with
+			$c'_{S_1},... c'_{S_k}$, where $S$ is the random subset chosen by the simulator.
+			Replace $\sigma_j$ with shares $\sigma'_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
+			\item $\hybrid{4}$: As $\hybrid{3}$ but replace $y$ with $y'$.
+		
 		% 	% TODO: better define threshold decryption as separate thing
 		% 	% TODO: remove separate ticket registration
-		% 	\item $\hybrid{5}$: The simulated protocol
-		% \end{itemize}
+			\item $\hybrid{5}$: The simulated protocol
+		\end{itemize}
 		% TODO: can I have proof be within bullet points
 			% Question: can a simulator have access to information from prior calls? 
 			% Ohhhhhhhhhhhhhhhh... I see output $y$ has to follow distribution as well.
