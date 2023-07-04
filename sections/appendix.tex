@@ -1,0 +1,111 @@
+\section{Encrypted Priority Queue}
+
+
+
+\section{Data Independent Streaming Sampler}
+\label{sec:streaming_sampler}
+Our construction makes heavy use of a data independent streaming sampler which we will define below.
+The streaming sampler relies on a data independent priority queue and in turn makes use of \LS{Cite Shi} protocol for an oblivious priority queue.
+
+\subsection*{
+	Encrypted Data Independent Queue
+}
+In this work, we will data independent queues as studied in \cite{toft2011secure, mitchell2014data, mazloom2023efficient}.
+Data independent data structures are unique as their control flow and memory access do not depend on input data (\cite{mitchell2014data}).
+
+We will use the data independent queue within public key threshold FHE such that we now have an encrypted priority queue, $\EncPQ$
+with functionality
+\begin{itemize}
+	\item $\EncPQInsert$: Inserts a tag and value, $\Enc(p, x)$ into $\PQ$ according to the tag's priority.
+	\item $\EncPQExtract$: Removes and returns the $\Enc(p, y)$ with highest tag priority.
+	\item $\EncPQFront$: Returns the $\Enc(p, y)$ with highest tag priority without removing the element.
+\end{itemize}
+
+We further require that for $\Enc(p, y) \gets \EncPQExtract$ (and $\EncPQFront$) and $x_1, ..., x_n$ drawn from a random distribution,
+\begin{align}
+	\label{eq:gameEncPQ}
+	\Bigl\lvert \Pr[\advers\left(x_1, \dots x_n, \Enc(p_1, x_1), ..., \Enc(p_n, x_n), \Enc(p, y), i\right) = 1] \\
+	- \Pr[\advers\left(x_1, \dots x_n, \Enc(p_1, x_1), ..., \Enc(p_n, x_n), \Enc(p, y), j\right) = 1]
+	\Bigr\rvert \leq \negl(\lambda) \notag
+\end{align}
+where $(p_i, x_i)$ and $(p_j, x_j)$ are the $i$th and $j$th submitted message to the priority queue for $i \neq j$.
+
+\begin{lemma}
+	Assuming the indistinguishablity of TFHE cipher texts, $\Enc(m_1) \dots \Enc(m_n)$
+	where $m_i \neq m_j$ for $i \neq j$ and are known to the adversary, then \cref{eq:gameEncPQ} holds.
+
+	\begin{proof}
+		Assume towards contradiction that there exists an adversary $\advers$ which can distinguish between a random
+		message to the priority queue and the output of $\EncPQExtract$ (resp. $\EncPQFront$).
+		Then, we can construct an adversary $\advers'$ which can distinguish TFHE cipher text, $\ct_1 = \Enc(m_1), \dots, \ct_n = \Enc(m_n)$, as follows:
+		\begin{enumerate}
+			\item $\advers'$ simulates an encrypted priority queue, $\EncPQ$.
+			\item $\advers'$ inserts $x_i = \Enc(\ct_i, r_i)$ into $\EncPQ$ for all $i \in [n]$.
+			\item The adversary then calls $\Enc(p, y) \gets \EncPQExtract$ (resp. $\EncPQFront$) and uses $\advers$ to distinguish between $x_1, \dots x_n$.
+			\item Output $m_i$ where $\Enc(p, y) = x_i$.
+		\end{enumerate}
+		Clearly, if the adversary can distinguish the priority queue outcomes, then using $\advers$, he can with non-negligible probability
+		distinguish encryptions of $m_1, \dots, m_n$ as the relative ordering of the encryptions is preserved and thus the priority queue repeatably gives the same output.
+	\end{proof}
+\end{lemma}
+
+
+\subsection*{Encrypted Streaming Sampler}
+A streaming sampler should output a random subset of size $k$ from a stream of $n$ elements with a random ordering.
+We can build a streaming sampler from a priority queue as follows:
+
+
+\begin{algorithm}
+	\caption{Encrypted Gated Insert}
+	\label{alg:EncIns}
+	\begin{algorithmic}
+		\Require $\Enc(\text{coin}), \EncPQ, \ct_a$
+		\Ensure $\EncPQ$'
+		\State $\ct_b \gets \EncPQExtract(\PQ)$
+		\State $\ct_{\text{new}} = \Enc(\text{coin}) \cdot \ct_a + (\Enc(\text{coin}) - 1) \cdot \ct_b$
+		\State $\EncPQInsert(ct_{\text{new}})$
+		\State \Return $\EncPQ$
+	\end{algorithmic}
+\end{algorithm}
+
+We will use a slightly modified version of a streaming sampler where randomness is submitted alongside the message.
+We can then implement the algorithm as follows
+\begin{itemize}
+	\item $\texttt{Insert}(\ct_i, \Enc(e_i))$ where $\ct_i$ is a cipher text and $\Enc(e_i)$ is encrypted randomness
+	      \begin{itemize}
+		      \item If the item is the $m$-th item and $m \leq k$, insert the item into the queue along with $e_i$ as its tag via $\EncPQInsert(\Enc(e_i), \ct)$.
+		      \item If $m > k$, we will evaluate the PRF (in FHE) to get an encoded random coin which is 1 with probability $1/m$ and 0 otherwise.
+		            Then, run \cref{alg:EncIns} which will
+		            \begin{itemize}
+			            \item replace the smallest labeled item in the queue with the new item if the coin is 1.
+			            \item not replace the smallest item in the queue if the coin is 0.
+		            \end{itemize}
+	      \end{itemize}
+
+	\item At the end of the stream, we output all the items in the priority queue, $\ct_{a_1} ... \ct_{a_k}$ in order
+	      by repeatably calling $\EncPQExtract$.
+
+\end{itemize}
+
+We can formalize soundness as a game as follows, for all $\ell \in [k], i, j \in [n]$,
+\begin{align}
+	\Bigl\lvert
+	\Pr[\advers(\ct_1, \dots, \ct_n, e_1, \dots, e_n, \ct_{a_1}, \dots, \ct_{a_k}, \ell, i) = 1] \\
+	- \Pr[\advers(\ct_1, \dots, e_1, \dots, \ct_{a_1}, \dots, \ell, j) = 1]
+	\Bigr\rvert \leq \negl(\lambda) \notag
+\end{align}
+In words, the adversary should not be able to guess with any advantage which of the $\ell$-th
+outputted cipher text is associated with which inputted cipher text.
+
+\begin{lemma}
+	Our construction of a streaming sampler is sound.
+	\begin{proof}
+		By construction of the streaming sampler, we have that $\Pr[a_\ell = i] = 1/n$ and thus $\Pr[\Dec(\ct_{a_\ell}) = \Dec(\ct_i)] = 1/n$.
+		% Now, we need to show that the adversary cannot distinguish between the output of the streaming sampler and a random subset of size $k$.
+		...
+
+
+		% TODO: this should not be too bad
+		% Hmmm.... all randomness (add coins) could be input into the protocol, thus its repeatable?
+	\end{proof}
+\end{lemma}
