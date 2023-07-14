@@ -80,8 +80,9 @@ Moreover, we note that the order is stable. I.e.\ the first inserted among equal
 \subsection{Resevoir Sampling}
 Resevoir sampling is an online algorithm which allows for randomly selecting
 $k$ elements from a stream of $n$ elements while using $\tilde{O}(k)$ space.
-Algorithm R (\cite{vitter1985random}) is a simple algorithm which relies on a priority queue:
+Algorithm R (\cite{vitter1985random}) is a simple algorithm which relies on a priority queue with interface:
 \begin{itemize}
+	\item $\ResevInit(k)$ initialize the resevoir sampling algorithm and data structure
 	\item $\ResevInsert(\mu_i, e_i, \texttt{coin}_i)$ where $\mu_i$ is $i$-th item, $e_i$ is independentally sampled randomness,
 	and $\texttt{coin}_i$ is a random coin with probability $1/m$ of equaling 1.
 	      \begin{itemize}

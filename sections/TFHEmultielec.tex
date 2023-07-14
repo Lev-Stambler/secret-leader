@@ -1,21 +1,33 @@
-\section{MSLE Protocol}
+\section{TFHE MSLE Protocol}
 \label{sec:msle_protocol}
 We use a similar notion of ideal functionality for a multi-secret leader election from the ideal
 functionality of single secret leader election of \LS{CITE}.
 
+\newcommand{\FinElect}{\mathcal{E}}
+\newcommand{\nBids}{b}
 \begin{figure}[ht]
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
 			\textbf{The MSLE functionality} $\idealMSLE$:
-			Initialize $E, R \gets \emptyset, \gets 0$. Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
+			Initialize $E, R \gets \emptyset, \nBids \gets 0$. Initialize $S$ to denote the set of sets
+			of active participants in each round.
+			Set $\FinElect \gets \emptyset$ to denote the set of finished elections.
+			Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
 			\begin{itemize}
-				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n\}$, broadcast $(\texttt{register}, i)$ to all parties and set $n \gets n + 1$
-				\item $\elect$ Elect $k$ leaders from $S \subseteq R$ parties. If $|S| \geq k$ and $\eid$ was not requested before,
-				      randomly sample $W^{\eid} \subseteq S$ where $|W^{\eid}| = k$.
+				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
+				\item $\registerElect(\eid, q)$ from party $P_i$.
+				      If $\eid \in \FinElect$ send $\bot$ to $P_i$ and do nothing.
+				      If $(i, w) \notin R$ or $(i, w) \in S_\eid$, send $\bot$ to $P_i$ and do nothing.
+				      If $S_\eid$ is not defined, set $S_\eid \gets \{(i, w)\}$.
+				      Otherwise, set $S_\eid \gets S_\eid \cup \{(i, w)\}$.
+				\item $\elect(\eid, n)$ Elect $k$ leaders from $S_\eid \subseteq R$ parties.
+				      If $|S| \geq k$ and $\eid \notin \FinElect$,
+				      randomly sample $W^{\eid} \subseteq S_\eid$ where $|W^{\eid}| = k$.
 				      Then, assign a random ordering to $W^\eid$ to get ordered set $E^\eid$.
 				      Next, send $(\texttt{outcome}, \eid, a)$ to $P_j$ for all $E^\eid_a = (j, \cdot)$
 				      and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $(i, \cdot) \notin E^\eid$. Store $E \gets E \bigcup \{E^\eid\}$.
+				      Set $\FinElect \gets \FinElect \cup \{\eid\}$.
 				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_a$, broadcast $(\texttt{result}, \eid, \ell, i)$.
 				      Otherwise, broadcast $(\texttt{rejected}, \eid, \ell, i)$.
 			\end{itemize}
@@ -25,14 +37,20 @@ functionality of single secret leader election of \LS{CITE}.
 	\label{fig:my_label}
 \end{figure}
 
+\newcommand{\resSampling}{\mathcal{R}}
+
 \begin{figure}
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
 			\textbf{The MSLE Protocol} $\pi_{\text{MSLE}}$:
-			Initialize $n = 0$. Fix some $k \in \N$ to denote the number of rounds.
-			Also, sample ;
-			this will be the key FHE to the PRF.
+			Initialize $\nBids = 0$. Fix some $k \in \N$ to denote the number of rounds.
+			Initialize an empty set of tickets, $R$.
+			Initialize an empty lookup of sets of parties in each election, $S$.
+			Initialize an empty lookup of reservoir sampling data structures $\resSampling$ and a set of finished elections $\FinElect$
+			Initialize an empty lookup of election results, $E$.
+
+			Initialize $S \gets \emptyset$ to denote the set of sets of active participants in each round.
 
 			\begin{itemize}
 				\item $\init$
@@ -42,18 +60,27 @@ functionality of single secret leader election of \LS{CITE}.
 					            This will be the key to the PRF
 				      \end{itemize}
 
-				\item $\register(\Enc(c_i))$
+				\item $\register$ from party $P_i$
 				      \begin{itemize}
 					      %  TODO: not within definition of TFHE, have to change up definition :((
-					      \item If party $P$ does not already have a TFHE share, create a TFHE share for $P_i$.
-					            % \item Add $\Enc(c_i)$ to $C$.
-					            % \item $n \gets n + 1$
+					      \item If party $P_i$ does not already have a TFHE share, create a TFHE share for $P_i$.
+					      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
 				      \end{itemize}
-				\item $\electReal$ where $c_i = \comm(s_i)$ for secret $s_i$ to party $P_i$
+				      % \item Add $\Enc(c_i)$ to $C$.
+				      % \item $n \gets n + 1$
+
+				\item $\registerElect(\eid, \Enc(c_i), w)$ from party $P_i$ where $c_i = \comm(s_i)$ for secret $s_i$.
 				      \begin{itemize}
-					      \item An encrypted streaming sampler will be publicly initialized
-					      \item the CRS will be used to run a PRF to get $\Enc(e_i) = \Enc(\texttt{PRF}(c_i, s_\texttt{TFHE}))$ for $i \in S$
-					      \item All $\Enc(c_{S_i})$ will be fed to the encrypted streaming sampler along with randomness $\Enc(e_i)$
+					      \item If $\eid \in \FinElect$, then send $\bot$ to $P_i$ and do nothing.
+					      \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
+					      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$ 
+					      \item The CRS will be used to run a PRF to get $\Enc(e_i), \Enc(\texttt{coin}_i) = \Enc(\texttt{PRF}(c_i, s_\texttt{TFHE}))$ for $i \in S$
+					      \item $\Enc(c_i)$ will be fed to the encrypted streaming sampler along with randomness via
+					            $\ResevInsertN{\eid}(\Enc(c_i), \Enc(e_i), \Enc(\texttt{coin}_i))$.
+				      \end{itemize}
+
+				\item $\elect(\eid)$ where $c_i = \comm(s_i)$ for secret $s_i$ to party $P_i$
+				      \begin{itemize}
 					      \item The encrypted streaming sampler will output a list of $k$ messages: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
 					      \item Then, at least $t$ parties will submit decryption shares to get $c_{a_1}, ..., c_{a_k}$.
 					      \item Each party will then check if they won an election by seeing if their commitment is in the list of decrypted messages.
@@ -61,8 +88,8 @@ functionality of single secret leader election of \LS{CITE}.
 				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
 				      \begin{itemize}
 					      \item $P_i$ submits a proof that they know the opening to $c_{a_\ell}$.
-								If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
-					      Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
+					            If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
+					            Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
 				      \end{itemize}
 			\end{itemize}
 		\end{minipage}
