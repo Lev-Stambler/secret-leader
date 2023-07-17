@@ -1,8 +1,8 @@
 \section{Preliminaries}
 \subsection{Threshold FHE}
-\cite{jain2017threshold} defines threshold FHE encryption. For the sake of completeness, we will define it here.
+\cite{jain2017threshold,boneh2018threshold} defines threshold FHE encryption. For the sake of completeness, we will define it here.
 
-\begin{definition}[TFHE]
+\begin{definition}[TFHE \cite{jain2017threshold}]
 	Let $P = \set{P_1, ..., P_N}$	 be a set of $N$ parties and $\mathbb{S}$ be a class of
 	access structures on $P$. A TFHE scheme for $\mathbb{S}$ is a tuple of PPT algorithms
 	$$
@@ -26,7 +26,7 @@
 Further we remember the definitions of evaluation correctness and simulation security as outlined in,
 \cite{boneh2020single}.
 
-\begin{definition}[Evaluation Correctness \cite{boneh2020single}].
+\begin{definition}[Evaluation Correctness \cite{jain2017threshold}].
 	We have that $\TFHE$ scheme is correct if
 	for all $\lambda$, depth bounds $d$, access structure $\mathbb{A}$, circuit $C : \set{0, 1}^k \rightarrow \set{0, 1}$
 	of depth at most $d$, $S \in \mathbb{A}$, and $\mu_i \in \set{0, 1}$, we have the following.
@@ -38,17 +38,62 @@ Further we remember the definitions of evaluation correctness and simulation sec
 	\end{equation*}
 \end{definition}
 
-\begin{definition}[Semantic Security]
-	We have that a $\TFHE$ scheme satisfies semantic security for for all $\lambda$, and depth bound $d$ if the following holds. There is a stateful PPT algorithm
-	$\mathcal{S} = (\mathcal{S}_1, \mathcal{S}_2)$ such that for any PPT adversary $\mathcal{A}$,
-	the following experiment outputs 1 with negligible probability in $\lambda$:
-	\begin{enumerate}
-		\item On input $1^\lambda$ and depth $1^d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$
-		\item The challenger runs $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N) \gets \TFHESetup(1^\lambda, 1^d, \mathbb{A})$ and provides $\TFHEPk$ to $\advers$.
-		\item $\advers$ outputs a set $S \subseteq \set{P_1, ..., P_N}$ such that $\S \notin \mathbb{A}$.
-		\item The challenger provides $\set{\TFHESk_i}_{i \in S}$ and $\TFHEEncrypt(\TFHEPk, \mu)$ to $\advers$ where $\mu \overset{\$}{\gets} \set{0, 1}$.
-		\item $\advers$ outputs a guess $\mu'$. The experiment outputs 1 if $\mu' = \mu$.
-	\end{enumerate}
+% \begin{definition}[Semantic Security \cite{jain2017threshold}]
+% 	We have that a $\TFHE$ scheme satisfies semantic security for for all $\lambda$, and depth bound $d$ if the following holds. There is a stateful PPT algorithm
+% 	$\mathcal{S} = (\mathcal{S}_1, \mathcal{S}_2)$ such that for any PPT adversary $\mathcal{A}$,
+% 	the following experiment outputs 1 with negligible probability in $\lambda$:
+% 	\begin{enumerate}
+% 		\item On input $1^\lambda$ and depth $1^d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$
+% 		\item The challenger runs $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N) \gets \TFHESetup(1^\lambda, 1^d, \mathbb{A})$ and provides $\TFHEPk$ to $\advers$.
+% 		\item $\advers$ outputs a set $S \subseteq \set{P_1, ..., P_N}$ such that $S \notin \mathbb{A}$.
+% 		\item The challenger provides $\set{\TFHESk_i}_{i \in S}$ and $\TFHEEncrypt(\TFHEPk, \mu)$ to $\advers$ where $\mu \overset{\$}{\gets} \set{0, 1}$.
+% 		\item $\advers$ outputs a guess $\mu'$. The experiment outputs 1 if $\mu' = \mu$.
+% 	\end{enumerate}
+% \end{definition}
+
+\begin{definition}[Simulation Security \cite{jain2017threshold}]
+	We say that a $\TFHE$ scheme is simulation secure if for all $\lambda$, depth bound $d$, and access structure $\mathbb{A}$
+	if there exists a stateful PPT simulator, $\mathcal{S}$, such that for any PPT adversary $\mathcal{A}$,
+	we have that the experiments $\exptReal(1^\lambda, 1^d)$ and $\exptSim(1^\lambda, 1^d)$ are statisically close
+	as a function of $\lambda$. The experiments are defined as follows:
+
+	% TODO: independent Latex?
+	\begin{itemize}
+		\item
+		      $\exptReal(1^\lambda, 1^d)$: \begin{enumerate}
+			      \item On input the security parameter $1^\lambda$ and depth bound $d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$.
+			      \item Run $\TFHESetup(1^\lambda, 1^d, \mathbb{A})$ to obtain $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N)$.
+						The adversary is given $\TFHEPk$.
+						\item The adversary outputs a set $S \subseteq \set{P_1, ..., P_N}$ such that $S \notin \mathbb{A}$
+						together with plaintest messages $\mu_1, ..., \mu_k \in \set{0, 1}$. The adversary is handed over $\{sk_i\}_{i \in S}$
+						\item For each $\mu_i$, the adversary is given $\TFHEEncrypt(\TFHEPk, \mu_i) \rightarrow \ct_i$.
+						\item The adversary issues a polynomial number of queries, $(S_i \subseteq \set{P_1, ..., P_N}, C_i)$.
+						for circuites $C_i: \set{0, 1}^k \rightarrow \set{0, 1}$. After each query the adversary receuves for $l \in S_i$ the value
+						$$
+						\TFHEPartDec(\TFHEEval(C_i, \ct_1, ..., \ct_k), \TFHESk_l) \rightarrow p_l
+						$$
+						\item $\advers$ outputs $\texttt{out}$, the experiment's output.
+						% TODO?
+		      \end{enumerate}
+		\item
+		      $\exptSim(1^\lambda, 1^d)$: \begin{enumerate}
+			      \item On input the security parameter $1^\lambda$ and depth bound $d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$.
+			      \item Run $\TFHESetup(1^\lambda, 1^d, \mathbb{A})$ to obtain $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N)$.
+						The adversary is given $\TFHEPk$.
+						\item $\advers$ outputs a set $S^* \subseteq \set{P_1, ..., P_N}$ such that $S \notin \mathbb{A}$
+						and plaintexts $\mu_1, ..., \mu_k \in \set{0, 1}$. The simulator is given $\TFHEPk, \mathbb{A}, S^*$ as input
+						and outputs $\set{sk_i}_{i \in S^*}$ and the state $\texttt{state}$. The adversary is given $\{sk_i\}_{i \in S^*}$
+						\item For each $\mu_i$, the adversay is given $\TFHEEncrypt(\TFHEPk, \mu_i) \rightarrow \ct_i$.
+						\item $\advers$ issues a polynomial number of queries of the form $(S_i \subseteq \set{P_1, ..., P_N}, C_i)$
+						\item for circuits $C_i: \set{0, 1}^k \rightarrow \set{0, 1}$. After each query, the simulator computes
+						$$
+							\simTFHE(C_i, \set{\ct_l}_{l=1}^k, C_i(\mu_1, ..., \mu_k), \texttt{state}) \rightarrow \set{p_l}_{l \in S_i}
+						$$
+						and sends $\set{p_l}_{l \in S_i}$ to the adversary.
+						\item $\advers$ outputs $\texttt{out}$, the experiment's output.
+
+		      \end{enumerate}
+	\end{itemize}
 
 \end{definition}
 
@@ -84,16 +129,16 @@ Algorithm R (\cite{vitter1985random}) is a simple algorithm which relies on a pr
 \begin{itemize}
 	\item $\ResevInit(k)$ initialize the resevoir sampling algorithm and data structure
 	\item $\ResevInsert(\mu_i, e_i, \texttt{coin}_i)$ where $\mu_i$ is $i$-th item, $e_i$ is independentally sampled randomness,
-	and $\texttt{coin}_i$ is a random coin with probability $1/m$ of equaling 1.
+	      and $\texttt{coin}_i$ is a random coin with probability $1/m$ of equaling 1.
 	      \begin{itemize}
 		      \item If $i \leq k$, insert the item into the queue along with $e_i$ as its tag via $\PQInsert(e_i, \mu_i)$.
 		      \item If $i > k$ and $\texttt{coin}_i = 1$, replace the smallest labeled item in the queue with the new item if the coin is 1.
-					\item If $i > k$ and $\texttt{coin}_i = 0$, do nothing.
+		      \item If $i > k$ and $\texttt{coin}_i = 0$, do nothing.
 	      \end{itemize}
 
 	\item  $\mu_{a_1}, \mu_{a_2}, ..., \mu_{a_k} \gets \ResevOutput()$ where $a_1, ..., a_k$ are a uniformly random ordered susbset of $[n]$
-	\begin{itemize}
-		\item Call $\PQExtract$ $k$ times setting $\mu_{a_\ell}$ to the $\ell$-th call to $\PQExtract$ where $\ell \in [k]$.
-	\end{itemize}
+	      \begin{itemize}
+		      \item Call $\PQExtract$ $k$ times setting $\mu_{a_\ell}$ to the $\ell$-th call to $\PQExtract$ where $\ell \in [k]$.
+	      \end{itemize}
 \end{itemize}
 

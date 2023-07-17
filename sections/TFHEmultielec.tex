@@ -16,19 +16,19 @@ functionality of single secret leader election of \LS{CITE}.
 			Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
 			\begin{itemize}
 				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
-				\item $\registerElect(\eid, q)$ from party $P_i$.
+				\item $\registerElect(\eid, w)$ from party $P_i$.
 				      If $\eid \in \FinElect$ send $\bot$ to $P_i$ and do nothing.
 				      If $(i, w) \notin R$ or $(i, w) \in S_\eid$, send $\bot$ to $P_i$ and do nothing.
 				      If $S_\eid$ is not defined, set $S_\eid \gets \{(i, w)\}$.
 				      Otherwise, set $S_\eid \gets S_\eid \cup \{(i, w)\}$.
-				\item $\elect(\eid, n)$ Elect $k$ leaders from $S_\eid \subseteq R$ parties.
+				\item $\elect(\eid)$ Elect $k$ leaders from $S_\eid \subseteq R$ parties.
 				      If $|S| \geq k$ and $\eid \notin \FinElect$,
 				      randomly sample $W^{\eid} \subseteq S_\eid$ where $|W^{\eid}| = k$.
 				      Then, assign a random ordering to $W^\eid$ to get ordered set $E^\eid$.
 				      Next, send $(\texttt{outcome}, \eid, a)$ to $P_j$ for all $E^\eid_a = (j, \cdot)$
 				      and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $(i, \cdot) \notin E^\eid$. Store $E \gets E \bigcup \{E^\eid\}$.
 				      Set $\FinElect \gets \FinElect \cup \{\eid\}$.
-				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_a$, broadcast $(\texttt{result}, \eid, \ell, i)$.
+				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_\ell$, broadcast $(\texttt{result}, \eid, \ell, i)$.
 				      Otherwise, broadcast $(\texttt{rejected}, \eid, \ell, i)$.
 			\end{itemize}
 		\end{minipage}
@@ -56,37 +56,44 @@ functionality of single secret leader election of \LS{CITE}.
 				\item $\init$
 				      \begin{itemize}
 					      \item Set $n = 0$
-					      \item Sample some secret $s_{\texttt{TFHE}}$ and publicly publicly publish $\Enc(s_{\texttt{TFHE}})$.
+					      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
+					      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
 					            This will be the key to the PRF
 				      \end{itemize}
 
 				\item $\register$ from party $P_i$
 				      \begin{itemize}
 					      %  TODO: not within definition of TFHE, have to change up definition :((
-					      \item If party $P_i$ does not already have a TFHE share, create a TFHE share for $P_i$.
+					      %  TODO: formalize secure channel?
+					      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$, for $P_i$
+					            and send the share over a secure channel to $P_i$.
+
 					      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
 				      \end{itemize}
 				      % \item Add $\Enc(c_i)$ to $C$.
 				      % \item $n \gets n + 1$
 
-				\item $\registerElect(\eid, \Enc(c_i), w)$ from party $P_i$ where $c_i = \comm(s_i)$ for secret $s_i$.
+				\item $\registerElect(\eid, \Enc(c_i), w)$ from party $P_i$ where $c_i = \comm(s_i)$ for a randomly sampled secret $s_i$.
 				      \begin{itemize}
 					      \item If $\eid \in \FinElect$, then send $\bot$ to $P_i$ and do nothing.
 					      \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
-					      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$ 
+					      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$
 					      \item The CRS will be used to run a PRF to get $\Enc(e_i), \Enc(\texttt{coin}_i) = \Enc(\texttt{PRF}(c_i, s_\texttt{TFHE}))$ for $i \in S$
 					      \item $\Enc(c_i)$ will be fed to the encrypted streaming sampler along with randomness via
 					            $\ResevInsertN{\eid}(\Enc(c_i), \Enc(e_i), \Enc(\texttt{coin}_i))$.
 				      \end{itemize}
 
-				\item $\elect(\eid)$ where $c_i = \comm(s_i)$ for secret $s_i$ to party $P_i$
+				\item $\elect(\eid)$
 				      \begin{itemize}
-					      \item The encrypted streaming sampler will output a list of $k$ messages: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
-					      \item Then, at least $t$ parties will submit decryption shares to get $c_{a_1}, ..., c_{a_k}$.
-					      \item Each party will then check if they won an election by seeing if their commitment is in the list of decrypted messages.
+					      \item If $\eid \in \FinElect$, then return $\bot$ and do nothing.
+					      \item The encrypted streaming sampler will output a list of $k$ messages via calling $\ResevOutputN{\eid}()$ $k$ times: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
+					            %  TODO: formal with TFHE decryption shares
+					      \item Then, at least $t$ parties will submit decryption shares, $p_i = \TFHEPartDec(\Enc(c_{a_1}), ..., \Enc(c_{a_2}))$ to get $c_{a_1}, ..., c_{a_k} = \TFHEFinDec(\{p_i\})$.
+					      \item Add $E_\eid = \left\{c_{a_1}, ..., c_{a_k}\right\}$ to $E$.
 				      \end{itemize}
 				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
 				      \begin{itemize}
+					      %  TODO: formal with commitments...
 					      \item $P_i$ submits a proof that they know the opening to $c_{a_\ell}$.
 					            If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
 					            Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
@@ -98,97 +105,225 @@ functionality of single secret leader election of \LS{CITE}.
 	\label{fig:protocolMSLE}
 \end{figure}
 
-\subsection{Simulation Security}
-To show simulation security, we will prove that, given a party's input and output in the ideal model,
-a simulator can simulate the distribution of the view in the protocol for the party. Note that because the
-protocol is deterministic, it suffices to prove simulation for only the party's output.
 
-More formally we will show that for party $i$,
-\begin{equation}
-	\label{eq:simSecReg}
-	\simulator_i\left(s_i, r_i, \idealMSLE.\register_i\right) \compInd \texttt{view}_{\register_i}((s_0, r_0), ..., (s_n, r_n)),
-\end{equation}
-\begin{equation}
-	\label{eq:simSecElect}
-	\simulator_i\left(s_i, b_i, r_i, \idealMSLE.\elect_i\right) \compInd \texttt{view}_{\elect_i}((s_0, b_0), ..., (s_n, b_n)),
-\end{equation}
-and
-\begin{equation}
-	\label{eq:simSecReveal}
-	\simulator_i\left(b_{a, 1}, \dots, b_{a, k}, s_i, r_i, \idealMSLE.\reveal_i\right) \compInd \texttt{view}_{\reveal_i}(),
-\end{equation}
-
-\begin{lemma}
-	We will first show that \cref{eq:simSecReg} is simulation secure.
-	\begin{proof}
-		The view of each party $i$ for $\register$ can be expressed as
-		\begin{equation*}
-			(r_i, s_i, c_i, C, \Enc(c_i), n)
-		\end{equation*}
-		We can create a simulator $\simulator_i$ that takes as input $s_i, r_i, n$ and outputs
-		an indistinguishable view
-		\begin{enumerate}
-			\item Sample something? Does the simulator have access to C?
-		\end{enumerate}
-	\end{proof}
-\end{lemma}
+\subsection{Semi Honest Simulation Security}
 
 
-\begin{lemma}
-	We will now show that \cref{eq:simSecElect} is simulation secure.
-	\begin{proof}
-		The view of each party $i$ for $\elect$ can be expressed as
-		\begin{align*}
-			(r_i,  s_i, \Enc(b_{1}), \dots \Enc(b_n), \Enc(r'_1), \dots, \Enc(r'_n), \\
-			\Enc(b_{a_1}), \dots, \Enc(b_{a_k}), \sigma_1, \dots \sigma_t, b_1, \dots, b_n, y)
-		\end{align*}
-		where $r'_i$ is the randomness from the streaming sampler, $\sigma_1, \dots \sigma_t$ are the decryption shares,
-		and $y \in \set{\bot, 1, ..., k}$ representing whether a party won election $1$ through $k$ or not ($\bot$).
-		Then, we have the simulator proceed in the following manner:
-		\begin{enumerate}
-			\item The simulator sets a random, local tape
-			      % TODO: question, are these c_js part of the protocol/ commitment or is it valid to do these samples?
-			      % (I.e. they are not messages)...
-			\item The simulator samples $c'_j$ for all $j \neq i$ where $c'_j$ is a commitment to a random value
-			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n) = \Enc(\texttt{PRF}(r, s_\texttt{TFHE}))$
-			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c'_j)$ for $j \in [i]$.
-			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c'_{a_1}),... \Enc(c'_{a_k})$.
-			\item The simulator then chooses a random, ordered subset $S \subseteq [n]$ where $|S| = k$.
-			      If there is some $w$ such that $S_w = i$, then set $y' = w$. Otherwise, set $y' = \bot$.
-			\item The simulator then sets the decryptions of $\Enc(c'_{a_\ell})$ to $c'_{S_\ell}$.
-			      The simulator also creates shares $\sigma_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
-			\item The simulator then outputs $y'$
+We can show semi-honest simulation security by showing that the view of each party $i$ in the real protocol
+can be simulated throughout the course of one election and then that this simulation can be extended for a polynomial number of elections.
 
-		\end{enumerate}
-		We now use a sequence of hybrids to show that the view of the real protocol is indistinguishable from
-		that of the simulated one
-		\begin{itemize}
-			\item $\hybrid{0}$: The real protocol
-			\item $\hybrid{1}$: As $\hybrid{0}$ but, for all $j \neq i$, $\Enc(c_j)$ are replaced with $\Enc(c'_j)$, where $c'_j$ is a commitment to a random value.
-			      We can see that $\hybrid{0} \equiv \hybrid{1}$ by the hiding property of commitments.
-			\item $\hybrid{2}$: As $\hybrid{1}$ but replace $\Enc(c_{a_1}),... \Enc(c_{a_k})$ with
-			      $\Enc(c'_{a_1}),... \Enc(c'_{a_k})$, the output of sampling the encrypted streaming sampler with $\Enc(c'_j)$.
-			\item $\hybrid{3}$: As $\hybrid{2}$ but replace $\Dec(\Enc(c'_{a_1})),... \Dec(\Enc(c'_{a_k}))$ with
-			      $c'_{S_1},... c'_{S_k}$, where $S$ is the random subset chosen by the simulator.
-			      Replace $\sigma_j$ with shares $\sigma'_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
-			\item $\hybrid{4}$: As $\hybrid{3}$ but replace $y$ with $y'$.
+\newcommand{\totalReg}{\overline{n}}
+\newcommand{\totalRev}{\overline{k}}
+Let $\totalReg$ be the total number of calls to $\registerElect(\eid, ., .)$ before the election for $\eid$, $\elect(\eid)$
+is called and that $k \leq \totalReg \leq n$ as if $\totalReg < k$, then $\elect$ returns $\bot$ and is trivial to simulate.
+Further, let $\totalRev$ be the total number of calls to $\texttt{reveal}(\eid, ., .)$ which did not reject, again we have that $\totalRev \leq k$.
+We will now show that a simulator can simulate the view of each party $i$ after $\totalReg$ calls to $\registerElect(\eid, .)$, a call to $\elect(\eid)$, and $\totalRev$ calls to $\reveal(\eid, .)$
+for a fixed $\eid$.
 
-			      % 	% TODO: better define threshold decryption as separate thing
-			      % 	% TODO: remove separate ticket registration
-			\item $\hybrid{5}$: The simulated protocol
-		\end{itemize}
-		% TODO: can I have proof be within bullet points
-		% Question: can a simulator have access to information from prior calls? 
-		% Ohhhhhhhhhhhhhhhh... I see output $y$ has to follow distribution as well.
+\newcommand{\simIMSLE}{\texttt{Sim}_i}
+The simulator, $\simIMSLE$, will proceed as follows with input $s_i, \TFHESk_i, \eid, w$ and output of election
+$(\texttt{outcome}, \eid, q)_i$ for $i \in [\totalReg]$ and $(\texttt{result}, \eid, \ell, j)$ for $\ell \in K$
+where $K \subseteq [k]$ and $|K| = \totalRev$:
+
+\begin{enumerate}
+	\item $\simIMSLE$ sets a random, local tape
+	\item The simulator samples $c'_j$ for all $j \neq i$ where $c'_j$ is a commitment to a random value.
+				The simulator also computes $c_i = \comm(s_i)$.
+	\item The simulator runs $\registerElect(\eid, \Enc(c'_j), w_j)$ for $i \in [\totalReg]$ as in the protocol.
+	\item The simulator runs the first two steps of $\elect(\eid)$, having the reservoir sample output $\Enc(c'_{a_1}), ..., \Enc(c'_{a_k})$.
+	The simulator then gives $\simTFHE(C, \set{\Enc{c'_j}}_{j \in [\totalReg]}, c'_1, ..., c'_{\totalReg}, S, \texttt{st})$
+	to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t - 1}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
+	and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
+	Note that this sets the decryption of the output of the reservoir sampling to $c'_{a_\ell}$ for $\ell \in [k]$.
+	\item For all calls to $\texttt{reveal}(\eid, \ell, \Enc(c'_j))$ for $\ell \in K$, the simulator 
+	simply runs the protocol as the simulator has knowledge of the openings to all of the commitments $c'_j$ used.
+\end{enumerate}
+
+% Proof sketch
+% First show that \Enc(c_j) == \Enc(c'_j)
+% Then by defn, register_elect(..) == register_elect(..)
+% Then, by defn Resev.output(..) == Resev.output(..)
+% Then, by the simulator for TFHE, we have that TFHEPartDec(..) == TFHEPartDec(..)
+% Then, by defn, elect(..) == elect(..)
 
 
-	\end{proof}
-\end{lemma}
+\begin{figure}
+	\centering
+	\fbox{
+		\begin{minipage}{1\textwidth}
+			\textbf{Simulator for Threshold MSLE} $\mathcal{S}_{i}$:
+			Initialize $\nBids = 0$. Fix some $k \in \N$ to denote the number of rounds.
+			Initialize an empty set of tickets, $R$.
+			Initialize an empty lookup of sets of parties in each election, $S$.
+			Initialize an empty lookup of reservoir sampling data structures $\resSampling$ and a set of finished elections $\FinElect$
+			Initialize an empty lookup of election results, $E$.
 
-\begin{lemma}
-	We will now show that \cref{eq:simSecReveal} is simulation secure.
-	\begin{proof}
+			Initialize $S \gets \emptyset$ to denote the set of sets of active participants in each round.
+			$\TFHESk$.
 
-	\end{proof}
-\end{lemma}
+			\begin{itemize}
+				\item $\init$
+				      \begin{itemize}
+					      \item Set $n = 0$
+					      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
+					      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
+					            This will be the key to the PRF
+				      \end{itemize}
+
+
+				\item $\register$ from party $P_i$
+				      \begin{itemize}
+					      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
+									%  Can we use a different secret key here?
+					      \item Call the ?simulator?
+					            % TODO: definition
+					      \item Simulate the secure channel communication with party $P_i$
+					            % TODO: formal
+				      \end{itemize}
+
+				\item $\registerElect(\eid, w, s_i, \TFHESk_i)$ from party $P_j$.
+				      \begin{itemize}
+					      \item If $j \neq i$, the simulator samples a random value $s'_j$ and follows the protocol directly using $s'_\TFHE$ and $\Enc(c'_j)$ where $c'_j = \comm(s'_j)$.
+					            Store $c'_j$ in a lookup table as well as its committed message.
+								\item If $j = i$, the simulator will use the commitment $c_i = \comm(s_i)$. And run $\registerElect$ as is in the protocol
+				      \end{itemize}
+
+				      % TODO: not really... we need to make sure that the wins and losses end up correct here...			
+
+				\item $\elect(\eid, \texttt{out}, s_i, \TFHESk_i)$ where the $\texttt{out}$ is output $\bot$ or $(\texttt{outcome}, \eid, q)_i$ for all $i \in [n]$ where $q \in \set{1, ..., k, \bot}$.
+				      \begin{itemize}
+					      \item If the output is $\bot$, return $\bot$.
+					      \item Let $a_1, ..., a_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a_\ell = i$.
+					            % TODO: formal
+					      \item Setup the $\simTFHE$ such that it controls $S$ parties with $|S| = t - 1$
+					      \item Set the output of the $\ell$-th call, for $\ell \in [k]$ to $\ResevOutputN{\eid}()$ to $\Enc(c'_{a_\ell})$
+					      \item Call $\ResevOutputN{\eid}$ k times
+					      \item Call the TFHE simulator to compute, $\simTFHE(C, \{\Enc(c'_{a_\ell})\} \bigcup \{s'_{\TFHE}\}, \{c'_{a_\ell}\}, \texttt{state})$
+					            and get a list of partial decryptions, $p_1, ..., p_{t - 1}$.
+					            % TODO: formal, assume that we have a total of $t$ shares sent out
+					      \item Set $p_t$ to a decryption such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{a_\ell}$.
+					      \item Add $E_\eid = \left\{c_{a_1}, ..., c_{a_k}\right\}$ to $E$.
+				      \end{itemize}
+				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_j))$ from $P_j$ and output $\bot$ or $(\texttt{result}, \eid, \ell, j)$.
+				      \begin{itemize}
+					      % TODO: faulty? oh yeah not here...
+					      \item If the outcome is $\bot$, return $\bot$.
+					            %  TODO: formal with commitments...
+					      \item Otherwise, if $j = i$ then we run $\reveal$ honestly by proving knowledge of the opening, $s_i$, to $c_i$.
+					            If $j \neq i$ prove knowledge of opening to $c'_j$ using the stored lookup table from $\registerElect$.
+				      \end{itemize}
+			\end{itemize}
+		\end{minipage}
+	}
+	\caption{Description of the MSLE protocol}
+	\label{fig:protocolMSLE}
+\end{figure}
+
+
+
+% To show simulation security, we will prove that, given a party's input and output in the ideal model,
+% a simulator can simulate the distribution of the view in the protocol for the party.
+
+% More formally we will show that for party $i$,
+% \begin{equation}
+% 	\label{eq:simSecReg}
+% 	\simulator_i\left(s_i, r_i, \idealMSLE.\register_j\right) \compInd \texttt{view}_{\register_j}(),
+% \end{equation}
+% \begin{equation}
+% 	\label{eq:simSecRegisterElect}
+% 	\simulator_i\left(s_i, b_i, r_i, \idealMSLE.\registerElect_j\right) \compInd \texttt{view}_{\registerElect}(\eid, \Enc(c_j)),
+% \end{equation}
+% \begin{equation}
+% 	\label{eq:simSecElect}
+% 	\simulator_i\left(s_i, b_i, r_i, \idealMSLE.\elect_i\right) \compInd \texttt{view}_{\elect_i}(\eid),
+% \end{equation}
+% and
+% \begin{equation}
+% 	\label{eq:simSecReveal}
+% 	\simulator_i\left(b_{a, 1}, \dots, b_{a, k}, s_i, r_i, \idealMSLE.\reveal_i\right) \compInd \texttt{view}_{\reveal_i}(),
+% \end{equation}
+
+% \begin{lemma}
+% 	[$\registerElect$ is simulation secure]
+% 	We will now show that \cref{eq:simSecRegisterElect} holds.
+% 	\begin{proof}
+% 		The simulator, $\mathcal{S}_i$, gets as input party $i$'s secret value, $s_i$, party $i$'s $\TFHE$ share $\TFHESk_i$,
+% 		$\eid$, and ticket number $w$. We note that if $\eid \in \FinElect$, then the simulator can simply output $\bot$ and
+% 		is identical to the real protocol.
+% 	\end{proof}
+% \end{lemma}
+
+% \begin{lemma}
+% 	We will first show that \cref{eq:simSecReg} is simulation secure.
+% 	\begin{proof}
+% 		The view of each party $i$ for $\register$ can be expressed as
+% 		\begin{equation*}
+% 			(r_i, s_i, c_i, C, \Enc(c_i), n)
+% 		\end{equation*}
+% 		We can create a simulator $\simulator_i$ that takes as input $s_i, r_i, n$ and outputs
+% 		an indistinguishable view
+% 		\begin{enumerate}
+% 			\item Sample something? Does the simulator have access to C?
+% 		\end{enumerate}
+% 	\end{proof}
+% \end{lemma}
+
+
+% \begin{lemma}
+% 	We will now show that \cref{eq:simSecElect} is simulation secure.
+% 	\begin{proof}
+% 		The view of each party $i$ for $\elect$ can be expressed as
+% 		\begin{align*}
+% 			(r_i,  s_i, \Enc(b_{1}), \dots \Enc(b_n), \Enc(r'_1), \dots, \Enc(r'_n), \\
+% 			\Enc(b_{a_1}), \dots, \Enc(b_{a_k}), \sigma_1, \dots \sigma_t, b_1, \dots, b_n, y)
+% 		\end{align*}
+% 		where $r'_i$ is the randomness from the streaming sampler, $\sigma_1, \dots \sigma_t$ are the decryption shares,
+% 		and $y \in \set{\bot, 1, ..., k}$ representing whether a party won election $1$ through $k$ or not ($\bot$).
+% 		Then, we have the simulator proceed in the following manner:
+% 		\begin{enumerate}
+% 			\item The simulator sets a random, local tape
+% 			      % TODO: question, are these c_js part of the protocol/ commitment or is it valid to do these samples?
+% 			      % (I.e. they are not messages)...
+% 			\item The simulator samples $c'_j$ for all $j \neq i$ where $c'_j$ is a commitment to a random value
+% 			\item The simulator samples some randomness $r$ and computes $\Enc(e_1), \dots, \Enc(e_n) = \Enc(\texttt{PRF}(r, s_\texttt{TFHE}))$
+% 			\item The simulator creates an encrypted priority queue $\EncPQ$ and simulates the encrypted streaming sampler for all inputs $\Enc(c'_j)$ for $j \in [i]$.
+% 			\item The simulator runs the encrypted streaming sampler to get the outputs $\Enc(c'_{a_1}),... \Enc(c'_{a_k})$.
+% 			\item The simulator then chooses a random, ordered subset $S \subseteq [n]$ where $|S| = k$.
+% 			      If there is some $w$ such that $S_w = i$, then set $y' = w$. Otherwise, set $y' = \bot$.
+% 			\item The simulator then sets the decryptions of $\Enc(c'_{a_\ell})$ to $c'_{S_\ell}$.
+% 			      The simulator also creates shares $\sigma_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
+% 			\item The simulator then outputs $y'$
+
+% 		\end{enumerate}
+% 		We now use a sequence of hybrids to show that the view of the real protocol is indistinguishable from
+% 		that of the simulated one
+% 		\begin{itemize}
+% 			\item $\hybrid{0}$: The real protocol
+% 			\item $\hybrid{1}$: As $\hybrid{0}$ but, for all $j \neq i$, $\Enc(c_j)$ are replaced with $\Enc(c'_j)$, where $c'_j$ is a commitment to a random value.
+% 			      We can see that $\hybrid{0} \equiv \hybrid{1}$ by the hiding property of commitments.
+% 			\item $\hybrid{2}$: As $\hybrid{1}$ but replace $\Enc(c_{a_1}),... \Enc(c_{a_k})$ with
+% 			      $\Enc(c'_{a_1}),... \Enc(c'_{a_k})$, the output of sampling the encrypted streaming sampler with $\Enc(c'_j)$.
+% 			\item $\hybrid{3}$: As $\hybrid{2}$ but replace $\Dec(\Enc(c'_{a_1})),... \Dec(\Enc(c'_{a_k}))$ with
+% 			      $c'_{S_1},... c'_{S_k}$, where $S$ is the random subset chosen by the simulator.
+% 			      Replace $\sigma_j$ with shares $\sigma'_j$ such that $\Enc(c'_{a_\ell})$ decrypts to $c'_{S_\ell}$.
+% 			\item $\hybrid{4}$: As $\hybrid{3}$ but replace $y$ with $y'$.
+
+% 			      % 	% TODO: better define threshold decryption as separate thing
+% 			      % 	% TODO: remove separate ticket registration
+% 			\item $\hybrid{5}$: The simulated protocol
+% 		\end{itemize}
+% 		% TODO: can I have proof be within bullet points
+% 		% Question: can a simulator have access to information from prior calls? 
+% 		% Ohhhhhhhhhhhhhhhh... I see output $y$ has to follow distribution as well.
+
+
+% 	\end{proof}
+% \end{lemma}
+
+% \begin{lemma}
+% 	We will now show that \cref{eq:simSecReveal} is simulation secure.
+% 	\begin{proof}
+
+% 	\end{proof}
+% \end{lemma}
 
