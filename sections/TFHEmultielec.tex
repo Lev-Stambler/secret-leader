@@ -169,9 +169,9 @@ can be simulated throughout the course of one election and then that this simula
 				\item $\register$ from party $P_j$
 				      \begin{itemize}
 					      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
-									%  Can we use a different secret key here?
+					            %  Can we use a different secret key here?
 					      \item Simulate the secure channel communication with party $P_j$ if $i \neq j$.
-								\item Run $\register$ honestly if $i = j$ by sending $\TFHESk_i$ to $P_i$
+					      \item Run $\register$ honestly if $i = j$ by sending $\TFHESk_i$ to $P_i$
 					            % TODO: formal
 				      \end{itemize}
 
@@ -179,28 +179,28 @@ can be simulated throughout the course of one election and then that this simula
 				      \begin{itemize}
 					      \item If $j \neq i$, the simulator samples a random value $s'_j$ and follows the protocol directly using $s'_\TFHE$ and $\Enc(c'_j)$ where $c'_j = \comm(s'_j)$.
 					            Store $c'_j$ in a lookup table as well as its committed message.
-								\item If $j = i$, the simulator will use the commitment $c_i = \comm(s_i)$. And run $\registerElect$ as is in the protocol
+					      \item If $j = i$, the simulator will use the commitment $c_i = \comm(s_i)$. And run $\registerElect$ as is in the protocol
 				      \end{itemize}
 
 				      % TODO: not really... we need to make sure that the wins and losses end up correct here...			
 
 				\item $\elect(\eid, \texttt{out}, s_i, \TFHESk_i)$ where the $\texttt{out}$ is output $\bot$ or $(\texttt{outcome}, \eid, q)_i$ for all $i \in [n]$ where $q \in \set{1, ..., k, \bot}$.
 				      \begin{itemize}
-								\item Let $\totalReg$ be the total number of successful calls to $\registerElect(\eid, ., .)$ before the election for $\eid$
+					      \item Let $\totalReg$ be the total number of successful calls to $\registerElect(\eid, ., .)$ before the election for $\eid$
 					      \item If the output is $\bot$, return $\bot$.
 					      \item Let $a'_1, ..., a'_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a'_\ell = i$.
-								\item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_{a'_1}, ..., c'_{a'_\ell}, S, \texttt{st})$
-	to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
-	and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
-	Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
+					      \item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_{a'_1}, ..., c'_{a'_\ell}, S, \texttt{st})$
+					            to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
+					            and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
+					            Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
 					      \item Add $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$ to $E$.
 				      \end{itemize}
 				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_j))$ from $P_j$ and output $\bot$ or $(\texttt{result}, \eid, \ell, j)$.
 				      \begin{itemize}
 					      % TODO: faulty? oh yeah not here...
 					      \item As the simulator has knowledge of the openings to all of the commitments $c'_j$ used, the simulator
-								to honestly run $\reveal(\eid, \ell, \Enc(c'_j))$ with commitment $c'_j$ and opening $s'_j$.
-								\item Note that in the semi-honest setting, the output is never $\bot$
+					            to honestly run $\reveal(\eid, \ell, \Enc(c'_j))$ with commitment $c'_j$ and opening $s'_j$.
+					      \item Note that in the semi-honest setting, the output is never $\bot$
 				      \end{itemize}
 			\end{itemize}
 		\end{minipage}
@@ -223,29 +223,35 @@ for $\registerElect$, $\elect$, and $\reveal$.
 		honestly. If party $P_j$ call $\registerElect$ for some $j \neq i$, then the view of the protocol
 		is that of $$(\Enc(c_j), \Enc(e_i, \texttt{coin}_i), \ResevInsertN{\eid}(\Enc(c_j, e_i, \texttt{coin}_i))).$$
 		Note that this view is completely determined by $\Enc(c_j)$. Also, note that $c_j$ is drawn
-		from a random distribution and is not in the view of the real protocol. Thus, 
+		from a random distribution and is not in the view of the real protocol. Thus,
 		by semantic security of $\TFHE$ (\cref{def:semanticSecurityTFHE}) we have that
 		$\Enc(c_j) \compInd \Enc(c'_j)$ where $c'_j$ is a commitment to a random value.
 	\end{proof}
 \end{lemma}
 
 \begin{lemma}[$\elect$ is simulation secure]
-\begin{proof}
-	If the view of the real protocol is $\bot$ because $\eid$ was already called, then the simulator can simply output $\bot$
-	and is thus identical to the real protocol.
-	Otherwise, note that the simulator needs to ``fix'' the output of $\elect$ to yield
-	a list of commitments such that, if $a'_\ell = j$ if party $j$ wins election $\ell$.
-	Thus, the TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using $\simTFHE(C, \set{\Enc{c'_j}}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$.
-	Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
-	and the decryption shares are simulated as well such that the cipher texts decrypt
-	to $c'_{a'_1}, ..., c'_{a'_k}$. 
-	We also have that, by the ideal functionality of $\elect$, $\set{(a'_\ell, .)}_{\ell \in [k]}$ is a randomly chosen
-	ordered subset from $S_\eid$. We can note that, by the correctness of reservoir sampling,
-	the output of $\ResevOutputN{\eid}()$ in the protocol is a randomly chosen ordered subset from $S_\eid$.
-	We then have that the distribution of the simulator's $\set{(a'_\ell, .)}_{\ell \in [k]} \equiv \set{(a_\ell, .)}_{\ell \in [k]}$
-	where $a_\ell$ is the party that won election $\ell$ in the protocol.
-	We then have that, by \cref{lemma:regElectSemiHonest}, $c'_{a'_1}, ..., c'_{a'_k} \compInd c_{a_1}, ..., c_{a_k}$ .
-\end{proof}	
+	\begin{proof}
+		If the view of the real protocol is $\bot$ because $\eid$ was already called, then the simulator can simply output $\bot$
+		and is thus identical to the real protocol.
+		Otherwise, note that the view of the protocol is
+		$$
+			(c_{a_1}, ..., c_{a_k}, p_1, ..., p_t, \texttt{view}(C(\Enc(c_{a_1}, e_1, \texttt{coin}_1), ..., \Enc(c_{a_k}, e_k, \texttt{coin}_k) ))).
+		$$
+		We will now show that simulator can simulate the above view.	
+		The simulator needs to ``fix'' the output of $\elect$ to yield
+		a list of commitments such that, if $a'_\ell = j$ if party $j$ wins election $\ell$.
+		The TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using 
+		$$\simTFHE(C, \set{\Enc(c'_j, e_j, \texttt{coin}_j)}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st}).$$
+		Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
+		and the decryption shares are simulated as well such that the cipher texts decrypt
+		to $c'_{a'_1}, ..., c'_{a'_k}$.
+		We also have that, by the ideal functionality of $\elect$, $\set{(a'_\ell, .)}_{\ell \in [k]}$ is a randomly chosen
+		ordered subset from $S_\eid$. We can note that, by the correctness of reservoir sampling,
+		the output of $\ResevOutputN{\eid}()$ in the protocol is a randomly chosen ordered subset from $S_\eid$.
+		We then have that the distribution of the simulator's $\set{(a'_\ell, .)}_{\ell \in [k]} \equiv \set{(a_\ell, .)}_{\ell \in [k]}$
+		where $a_\ell$ is the party that won election $\ell$ in the protocol.
+		We then have that, by the simulation security of $\registerElect$ (\cref{lemma:regElectSemiHonest}), $c'_{a'_1}, ..., c'_{a'_k} \compInd c_{a_1}, ..., c_{a_k}$ .
+	\end{proof}
 \end{lemma}
 
 \begin{lemma}[$\reveal$ is simulation secure]
@@ -253,7 +259,6 @@ for $\registerElect$, $\elect$, and $\reveal$.
 		Note that the simulator can simply run $\reveal$ honestly as the simulator has knowledge of the openings to all of the commitments $c'_j$ used
 		and thus has an identical view to that of the real protocol.
 	\end{proof}
-	
 \end{lemma}
 
 
