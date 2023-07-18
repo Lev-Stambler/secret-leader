@@ -16,7 +16,7 @@ except that we add a $\registerElect$ phase for each election.
 			Set $\FinElect \gets \emptyset$ to denote the set of finished elections.
 			Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
 			\begin{itemize}
-				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, n)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
+				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, b)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
 				\item $\registerElect(\eid, w)$ from party $P_i$.
 				      If $\eid \in \FinElect$ send $\bot$ to $P_i$ and do nothing.
 				      If $(i, w) \notin R$ or $(i, w) \in S_\eid$, send $\bot$ to $P_i$ and do nothing.
@@ -188,12 +188,12 @@ can be simulated throughout the course of one election and then that this simula
 				      \begin{itemize}
 								\item Let $\totalReg$ be the total number of successful calls to $\registerElect(\eid, ., .)$ before the election for $\eid$
 					      \item If the output is $\bot$, return $\bot$.
-					      \item Let $a_1, ..., a_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a_\ell = i$.
-								\item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$
+					      \item Let $a'_1, ..., a'_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a'_\ell = i$.
+								\item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_{a'_1}, ..., c'_{a'_\ell}, S, \texttt{st})$
 	to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
 	and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
-	Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a_\ell}$ for $\ell \in [k]$.
-					      \item Add $E_\eid = \left\{c'_{a_1}, ..., c'_{a_k}\right\}$ to $E$.
+	Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
+					      \item Add $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$ to $E$.
 				      \end{itemize}
 				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_j))$ from $P_j$ and output $\bot$ or $(\texttt{result}, \eid, \ell, j)$.
 				      \begin{itemize}
@@ -234,11 +234,17 @@ for $\registerElect$, $\elect$, and $\reveal$.
 	If the view of the real protocol is $\bot$ because $\eid$ was already called, then the simulator can simply output $\bot$
 	and is thus identical to the real protocol.
 	Otherwise, note that the simulator needs to ``fix'' the output of $\elect$ to yield
-	a list of commitments such that, if $a_\ell = j$ if party $j$ wins election $\ell$.
+	a list of commitments such that, if $a'_\ell = j$ if party $j$ wins election $\ell$.
 	Thus, the TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using $\simTFHE(C, \set{\Enc{c'_j}}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$.
 	Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
 	and the decryption shares are simulated as well such that the cipher texts decrypt
-	to $c'_{a_1}, ..., c'_{a_k} \compInd c_{a_1}, ..., c_{a_k}$ by \cref{lemma:regElectSemiHonest}.
+	to $c'_{a'_1}, ..., c'_{a'_k}$. 
+	We also have that, by the ideal functionality of $\elect$, $\set{(a'_\ell, .)}_{\ell \in [k]}$ is a randomly chosen
+	ordered subset from $S_\eid$. We can note that, by the correctness of reservoir sampling,
+	the output of $\ResevOutputN{\eid}()$ in the protocol is a randomly chosen ordered subset from $S_\eid$.
+	We then have that the distribution of the simulator's $\set{(a'_\ell, .)}_{\ell \in [k]} \equiv \set{(a_\ell, .)}_{\ell \in [k]}$
+	where $a_\ell$ is the party that won election $\ell$ in the protocol.
+	We then have that, by \cref{lemma:regElectSemiHonest}, $c'_{a'_1}, ..., c'_{a'_k} \compInd c_{a_1}, ..., c_{a_k}$ .
 \end{proof}	
 \end{lemma}
 
