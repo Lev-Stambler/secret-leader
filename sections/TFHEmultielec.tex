@@ -1,7 +1,8 @@
 \section{TFHE MSLE Protocol}
 \label{sec:msle_protocol}
 We use a similar notion of ideal functionality for a multi-secret leader election from the ideal
-functionality of single secret leader election of \LS{CITE}.
+functionality of single secret leader election of \cite{catalano2022adaptively}
+except that we add a $\registerElect$ phase for each election.
 
 \newcommand{\FinElect}{\mathcal{E}}
 \newcommand{\nBids}{b}
@@ -33,7 +34,7 @@ functionality of single secret leader election of \LS{CITE}.
 			\end{itemize}
 		\end{minipage}
 	}
-	\caption{Description of the MSLE functionality, heavily based on the description of SSLE in \LS{CITE Dario and CFG21}}.
+	\caption{Description of the Multi Secret Leader Election functionality}.
 	\label{fig:my_label}
 \end{figure}
 
@@ -114,11 +115,11 @@ can be simulated throughout the course of one election and then that this simula
 
 \newcommand{\totalReg}{\overline{n}}
 \newcommand{\totalRev}{\overline{k}}
-Let $\totalReg$ be the total number of calls to $\registerElect(\eid, ., .)$ before the election for $\eid$, $\elect(\eid)$
-is called and that $k \leq \totalReg \leq n$ as if $\totalReg < k$, then $\elect$ returns $\bot$ and is trivial to simulate.
-Further, let $\totalRev$ be the total number of calls to $\texttt{reveal}(\eid, ., .)$ which did not reject, again we have that $\totalRev \leq k$.
-We will now show that a simulator can simulate the view of each party $i$ after $\totalReg$ calls to $\registerElect(\eid, .)$, a call to $\elect(\eid)$, and $\totalRev$ calls to $\reveal(\eid, .)$
-for a fixed $\eid$.
+% Let $\totalReg$ be the total number of calls to $\registerElect(\eid, ., .)$ before the election for $\eid$, $\elect(\eid)$
+% is called and that $k \leq \totalReg \leq n$ as if $\totalReg < k$, then $\elect$ returns $\bot$ and is trivial to simulate.
+% Further, let $\totalRev$ be the total number of calls to $\texttt{reveal}(\eid, ., .)$ which did not reject, again we have that $\totalRev \leq k$.
+% We will now show that a simulator can simulate the view of each party $i$ after $\totalReg$ calls to $\registerElect(\eid, .)$, a call to $\elect(\eid)$, and $\totalRev$ calls to $\reveal(\eid, .)$
+% for a fixed $\eid$.
 
 \newcommand{\simIMSLE}{\texttt{Sim}_i}
 % The simulator, $\simIMSLE$, will proceed as follows with input $s_i, \TFHESk_i, \eid, w$ and output of election
@@ -189,7 +190,7 @@ for a fixed $\eid$.
 					      \item If the output is $\bot$, return $\bot$.
 					      \item Let $a_1, ..., a_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a_\ell = i$.
 								\item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$
-	to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t - 1}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
+	to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
 	and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
 	Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a_\ell}$ for $\ell \in [k]$.
 					      \item Add $E_\eid = \left\{c'_{a_1}, ..., c'_{a_k}\right\}$ to $E$.
@@ -212,18 +213,18 @@ We will now show that $\simIMSLE$ is indeed a simulator for the view of $\pi_{\t
 for $\registerElect$, $\elect$, and $\reveal$.
 
 \begin{lemma}
-	\label{lemma:regElectSemiHonest}
 	[$\registerElect$ is simulation secure]
+	\label{lemma:regElectSemiHonest}
 	\begin{proof}
 		The simulator gets as input party $i$'s secret value, $s_i$, party $i$'s $\TFHE$ share $\TFHESk_i$,
-		$\eid$, and ticket number $w$. We note that if $\eid \in \FinElect$ or $(i, w) \not R$, then the simulator can simply output $\bot$ and
+		$\eid$, and ticket number $w$. We note that if $\eid \in \FinElect$ or $(i, w) \notin R$, then the simulator can simply output $\bot$ and
 		is identical to the real protocol.
 		Otherwise, if party $P_i$ calls $\registerElect$, then the simulator knows the input of $P_i$ and can simulate the protocol
 		honestly. If party $P_j$ call $\registerElect$ for some $j \neq i$, then the view of the protocol
-		is that of $(\Enc(c_j), \Enc(e_i, \texttt{coin}_i), \ResevInsertN{\eid}(\Enc(c_j, e_i, \texttt{coin}_i)))$.
+		is that of $$(\Enc(c_j), \Enc(e_i, \texttt{coin}_i), \ResevInsertN{\eid}(\Enc(c_j, e_i, \texttt{coin}_i))).$$
 		Note that this view is completely determined by $\Enc(c_j)$. Also, note that $c_j$ is drawn
 		from a random distribution and is not in the view of the real protocol. Thus, 
-		by semantic security of $\TFHE$ (TODO: add citation and refrence to prelis) we have that
+		by semantic security of $\TFHE$ (\cref{def:semanticSecurityTFHE}) we have that
 		$\Enc(c_j) \compInd \Enc(c'_j)$ where $c'_j$ is a commitment to a random value.
 	\end{proof}
 \end{lemma}
@@ -234,7 +235,7 @@ for $\registerElect$, $\elect$, and $\reveal$.
 	and is thus identical to the real protocol.
 	Otherwise, note that the simulator needs to ``fix'' the output of $\elect$ to yield
 	a list of commitments such that, if $a_\ell = j$ if party $j$ wins election $\ell$.
-	Thus, the simulator can simply output the decryption shares $\simTFHE(C, \set{\Enc{c'_j}}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$.
+	Thus, the TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using $\simTFHE(C, \set{\Enc{c'_j}}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st})$.
 	Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
 	and the decryption shares are simulated as well such that the cipher texts decrypt
 	to $c'_{a_1}, ..., c'_{a_k} \compInd c_{a_1}, ..., c_{a_k}$ by \cref{lemma:regElectSemiHonest}.
@@ -244,7 +245,7 @@ for $\registerElect$, $\elect$, and $\reveal$.
 \begin{lemma}[$\reveal$ is simulation secure]
 	\begin{proof}
 		Note that the simulator can simply run $\reveal$ honestly as the simulator has knowledge of the openings to all of the commitments $c'_j$ used
-		and is thus identical to the view of the real protocol.
+		and thus has an identical view to that of the real protocol.
 	\end{proof}
 	
 \end{lemma}

@@ -38,18 +38,19 @@ Further we remember the definitions of evaluation correctness and simulation sec
 	\end{equation*}
 \end{definition}
 
-% \begin{definition}[Semantic Security \cite{jain2017threshold}]
-% 	We have that a $\TFHE$ scheme satisfies semantic security for for all $\lambda$, and depth bound $d$ if the following holds. There is a stateful PPT algorithm
-% 	$\mathcal{S} = (\mathcal{S}_1, \mathcal{S}_2)$ such that for any PPT adversary $\mathcal{A}$,
-% 	the following experiment outputs 1 with negligible probability in $\lambda$:
-% 	\begin{enumerate}
-% 		\item On input $1^\lambda$ and depth $1^d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$
-% 		\item The challenger runs $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N) \gets \TFHESetup(1^\lambda, 1^d, \mathbb{A})$ and provides $\TFHEPk$ to $\advers$.
-% 		\item $\advers$ outputs a set $S \subseteq \set{P_1, ..., P_N}$ such that $S \notin \mathbb{A}$.
-% 		\item The challenger provides $\set{\TFHESk_i}_{i \in S}$ and $\TFHEEncrypt(\TFHEPk, \mu)$ to $\advers$ where $\mu \overset{\$}{\gets} \set{0, 1}$.
-% 		\item $\advers$ outputs a guess $\mu'$. The experiment outputs 1 if $\mu' = \mu$.
-% 	\end{enumerate}
-% \end{definition}
+\begin{definition}[Semantic Security \cite{jain2017threshold}]
+	\label{def:semanticSecurityTFHE}
+	We have that a $\TFHE$ scheme satisfies semantic security for for all $\lambda$, and depth bound $d$ if the following holds. There is a stateful PPT algorithm
+	$\mathcal{S} = (\mathcal{S}_1, \mathcal{S}_2)$ such that for any PPT adversary $\mathcal{A}$,
+	the following experiment outputs 1 with negligible probability in $\lambda$:
+	\begin{enumerate}
+		\item On input $1^\lambda$ and depth $1^d$, the adversary outputs $\mathbb{A} \in \mathbb{S}$
+		\item The challenger runs $(\TFHEPk, \TFHESk_1, ..., \TFHESk_N) \gets \TFHESetup(1^\lambda, 1^d, \mathbb{A})$ and provides $\TFHEPk$ to $\advers$.
+		\item $\advers$ outputs a set $S \subseteq \set{P_1, ..., P_N}$ such that $S \notin \mathbb{A}$.
+		\item The challenger provides $\set{\TFHESk_i}_{i \in S}$ and $\TFHEEncrypt(\TFHEPk, \mu)$ to $\advers$ where $\mu \overset{\$}{\gets} \set{0, 1}$.
+		\item $\advers$ outputs a guess $\mu'$. The experiment outputs 1 if $\mu' = \mu$.
+	\end{enumerate}
+\end{definition}
 
 \begin{definition}[Simulation Security \cite{jain2017threshold}]
 	We say that a $\TFHE$ scheme is simulation secure if for all $\lambda$, depth bound $d$, and access structure $\mathbb{A}$
