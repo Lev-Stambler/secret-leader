@@ -4,6 +4,7 @@ functionality of single secret leader election of \cite{catalano2022adaptively}
 except that we add a $\registerElect$ phase for each election.
 
 \newcommand{\FinElect}{\mathcal{E}}
+\newcommand{\Registered}{R}
 \newcommand{\nBids}{b}
 \begin{figure}[ht]
 	\centering
@@ -15,21 +16,24 @@ except that we add a $\registerElect$ phase for each election.
 			Set $\FinElect \gets \emptyset$ to denote the set of finished elections.
 			Fix some $k \in \N$ to denote the number of rounds. Upon receiving,
 			\begin{itemize}
-				\item $\register$ from party $P_i$, set $R \gets R \cup \{(i, b)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
-				\item $\registerElect(\eid, w)$ from party $P_i$.
+				% TODO: CRS?
+				% \item $\register$ from party $P_i$, set $R \gets R \cup \{(i, b)\}$, broadcast $(\texttt{register}, i)$ to all parties and set $\nBids \gets \nBids + 1$
+				\item $\registerElect(\eid)$ from party $P_i$.
 				      If $\eid \in \FinElect$ send $\bot$ to $P_i$ and do nothing.
-				      If $(i, w) \notin R$ or $(i, w) \in S_\eid$, send $\bot$ to $P_i$ and do nothing.
-				      If $S_\eid$ is not defined, set $S_\eid \gets \{(i, w)\}$.
-				      Otherwise, set $S_\eid \gets S_\eid \cup \{(i, w)\}$.
-				\item $\elect(\eid)$ Elect $k$ leaders from $S_\eid \subseteq R$ parties.
-				      If $|S| \geq k$ and $\eid \notin \FinElect$,
-				      randomly sample $W^{\eid} \subseteq S_\eid$ where $|W^{\eid}| = k$.
+				      % If $(i, w) \notin R$ or $(i, w) \in S_\eid$, send $\bot$ to $P_i$ and do nothing.
+							% If $i \in S_\eid$, send do nothing.
+				      If $S_\eid$ is not defined, set $S_\eid \gets \{i\}$.
+				      Otherwise, set $S_\eid \gets S_\eid \cup \{i\}$ and store $S_\eid$.
+				\item $\elect(\eid)$ from all honest participants.\\
+				      If $|S_\eid| \geq k$, randomly sample $W^{\eid} \subseteq S_\eid$ where $|W^{\eid}| = k$.
 				      Then, assign a random ordering to $W^\eid$ to get ordered set $E^\eid$.
-				      Next, send $(\texttt{outcome}, \eid, a)$ to $P_j$ for all $E^\eid_a = (j, \cdot)$
-				      and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $(i, \cdot) \notin E^\eid$. Store $E \gets E \bigcup \{E^\eid\}$.
-				      Set $\FinElect \gets \FinElect \cup \{\eid\}$.
-				\item $\reveal$ from $P_i$: for $E_\eid \in E$, if $i = E^\eid_\ell$, broadcast $(\texttt{result}, \eid, \ell, i)$.
-				      Otherwise, broadcast $(\texttt{rejected}, \eid, \ell, i)$.
+				      Next, send $(\texttt{outcome}, \eid, \ell)$ to $P_j$ if $E^\eid_\ell = j$
+				      and $(\texttt{outcome}, \eid, \bot)$ to $P_i$ if $i \notin E^\eid$.						
+							Store $E^\eid$ and set $\FinElect \gets \FinElect \cup \{\eid\}$.
+
+				\item $\reveal(\eid, \ell)$ from $P_i$: If $E^\eid$ is not defined, send $\bot$ to $P_i$ and do nothing.
+				Otherwise, retrieve $E^\eid$. If $i = E^\eid_\ell$, broadcast $(\texttt{result}, \eid, \ell, i)$.
+				Otherwise, broadcast $(\texttt{rejected}, \eid, \ell, i)$.
 			\end{itemize}
 		\end{minipage}
 	}

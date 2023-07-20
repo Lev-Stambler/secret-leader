@@ -8,6 +8,8 @@
 \usepackage{hyperref}
 
 \usepackage{tikzsymbols}
+\usepackage{mdframed}
+
 
 \newcommand{\myname}{Authors here}
 
@@ -49,13 +51,18 @@
 \newcommand{\hybrid}[1]{\mathrm{\textbf{Hyb}}_{#1}}
 \newcommand{\eid}{{eid}}
 \newcommand{\init}{\texttt{initialize}}
+\newcommand{\setup}{\texttt{setup}}
 \newcommand{\register}{\texttt{register}}
 \newcommand{\registerElect}{\texttt{register\_elect}}
+\newcommand{\registerElectAdd}{\texttt{register\_elect\_add}}
 \newcommand{\elect}{\texttt{elect}}
+\newcommand{\electDone}{\texttt{elect\_done}}
 \newcommand{\reveal}{\texttt{reveal}}
 \newcommand{\extractMin}{\texttt{ExtractMin}}
 \newcommand{\getMin}{\texttt{GetMin}}
 \newcommand{\ct}{\texttt{ct}}
+\newcommand{\crs}{CRS}
+\newcommand{\randomGet}{\overset{\$}{\gets}}
 
 \newcommand{\PQInsert}{\texttt{PQ.Insert}}
 \newcommand{\PQExtract}{\texttt{PQ.ExtractFront}}
@@ -99,6 +106,8 @@
 
 \algrenewcommand\algorithmicrequire{\textbf{Input:}}
 \algrenewcommand\algorithmicensure{\textbf{Output:}}
+
+
 
 % \begin{abstract}
 % \end{abstract}
