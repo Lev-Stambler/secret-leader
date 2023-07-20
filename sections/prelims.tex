@@ -98,6 +98,61 @@ Further, we remember the definitions of evaluation correctness, semantic securit
 
 \end{definition}
 
+\subsection{Non Interactive Zero-Knowledge}
+The following definition is taken almost verbatim from \cite{catalano2022adaptively}.
+A non-Interactive Zero-Knowledge (NZIK) proof system for relationship $\proofRel$
+is a tuple of PPT algorithms $(\NZIKGen, \NZIKProve, \NZIKVerify)$ such that $\NZIKGen$ generates a common reference string, $\NZIKCRS$,
+$\NZIKProve(\NZIKCRS, x, w)$ given $(x, w) \in \proofRel$, outputs a proof $\proofElem$,
+and $\NZIKVerify(\NZIKCRS, x, \proofElem)$ outputs 1 if $(x, w) \in \proofRel$ and 0 otherwise.
+A $\NZIK$ is correct is for every $\NZIKCRS$ and all $(x, w) \in \proofRel$, we have that\\
+$\NZIKVerify(\NZIKCRS, x, \NZIKProve(\NZIKCRS, x, w)) = 1$ holds with probability 1.
+We also require that our NZIKs satisfy the notions of weak simulation extractability \cite{sahai1999non} and 
+zero-knowledge \cite{feige1990multiple}.
+
+Weak simulation extractability guarentees the extractability of proofs produced
+by the adversary that are not equal to proofs previously observed. Thus, we make each
+proof ``unique'' by implicitly adding a session ID to the statement. For more of a commentary,
+see section 2.7 of \cite{catalano2022adaptively}. We will not detail how to handle these session IDs.
+
+% TODO: remove above?
+We recall the notion of simulation security from \cite{sahai1999non}:
+
+\begin{definition}[NZIK simulation security]
+	We say that a proof system for relationship $\proofRel$ is simulation secure if proof system
+	$(\NZIKGen, \NZIKProve, \NZIKVerify)$ is a non-interactive proof system and $\simulator_1, \simulator_2$ are PPT algorithms
+	such that for all PPT adversaries $\advers_1, \advers_2$ we have that \\
+	$ \left|\Pr[\exptReal(\lambda) = 1] - \Pr[\exptSim(\lambda) = 1]\right|$ is negligible in $\lambda$.
+	The experiments are defined as follows:
+	\begin{itemize}
+		\item $\exptReal$:
+		\begin{enumerate}
+			\item $\NZIKCRS \gets \NZIKGen(1^\lambda)$
+			\item $\advers_1$ outputs $(x, w, \texttt{state}_1)$
+			\item $\proofElem \gets \NZIKProve(\NZIKCRS, x, w)$
+			\item return $\advers_2(\proofElem, \texttt{state}_1)$
+		\end{enumerate}
+		\item $\exptSim$:
+		\begin{enumerate}
+			\item $\NZIKCRS \gets \simulator_1(1^\lambda)$
+			\item $\advers_1$ outputs $(x, w, \texttt{state})$
+			\item $\proofElem \gets \simulator_2(\NZIKCRS, x, w)$
+			\item return $\advers_2(\proofElem, \texttt{state})$
+		\end{enumerate}
+	\end{itemize}
+\end{definition}
+% Oh wait we do not need this
+
+We also have that a NZIK has ideal functionality $\NZIKIdeal$ which is defined as follows:
+\begin{figure}[H]
+	\fbox{
+		\begin{minipage}{1\textwidth}
+			\textbf{The $\NZIKIdeal$ functionality for zero-knowledge}:\\
+			Upon receiving $(\texttt{prove}, sid, x, w)$ from $P_i$, with $sid$ being used for the first time,
+			if $(x, w) \in \proofRel$, broadcast $(\texttt{proof}, sid, i, \proofElem)$, otherwise broadcast $\bot$.
+		\end{minipage}
+	}
+\end{figure}
+
 \subsection{Data Independent Priority Queue}
 In this work, we will use data independent queues as studied in \cite{toft2011secure, mitchell2014data, mazloom2023efficient}.
 Data independent data structures are unique as their control flow and memory access do not depend on input data (\cite{mitchell2014data}).

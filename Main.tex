@@ -86,6 +86,16 @@
 \newcommand{\ResevOutput}{\texttt{Resevoir.Output}}
 \newcommand{\ResevOutputN}[1]{\texttt{Resevoir}^{#1}\texttt{.Output}}
 
+% ZK Commands
+\newcommand{\proofRel}{Rel}
+\newcommand{\NZIK}{\texttt{NZIK}}
+\newcommand{\NZIKGen}{\texttt{NZIK.G}}
+\newcommand{\NZIKProve}{\texttt{NZIK.P}}
+\newcommand{\NZIKVerify}{\texttt{NZIK.V}}
+\newcommand{\NZIKCRS}{\texttt{NZIK.crs}}
+\newcommand{\proofElem}{\pi}
+\newcommand{\NZIKIdeal}{\mathcal{F}_{\NZIK}^{\proofRel}}
+
 
 \algrenewcommand\algorithmicrequire{\textbf{Input:}}
 \algrenewcommand\algorithmicensure{\textbf{Output:}}
@@ -103,7 +113,9 @@
 % \end{enumerate}
 
 \input{sections/prelims.tex}
+\input{sections/MSLEIdeal.tex}
 \input{sections/TFHEmultielec.tex}
+\clearpage
 
 
 \bibliographystyle{alpha}
