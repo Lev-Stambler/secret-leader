@@ -5,7 +5,7 @@ We outline a semi-honest protocol in \cref{fig:protocolMSLE} in the common refer
 
 We define the setup, $\setup$, for the protocol as follows:
 \begin{itemize}
-	\item Set $k_{\texttt{TFHE}} \overset{\$}{\leftarrow} U_q.$
+	\item Set $k_{\texttt{TFHE}} \randomGet \F_q.$
 	\item Publish CRS, $\crs = \Enc(k_{\texttt{TFHE}})$.
 	      % This will be the key to the PRF
 \end{itemize}
