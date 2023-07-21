@@ -184,16 +184,18 @@ Resevoir sampling is an online algorithm which allows for randomly selecting
 $k$ elements from a stream of $n$ elements while using $\tilde{O}(k)$ space.
 Algorithm R (\cite{vitter1985random}) is a simple algorithm which relies on a priority queue with interface:
 \begin{itemize}
-	\item $\ResevInit(k)$ initialize the resevoir sampling algorithm and data structure
-	\item $\ResevInsert(\mu_i, e_i, \texttt{coin}_i)$ where $\mu_i$ is $i$-th item, $e_i$ is independentally sampled randomness,
+	\item $\ResevInit(k)$ initialize the resevoir sampling data structure $\resSampling$ such that $\resSampling.\PQ$  is an empty priority queue.
+	\item $\ResevInsert(\resSampling, \mu_i, e_i, \texttt{coin}_i)$ where $\mu_i$ is $i$-th item, $e_i$ is independentally sampled randomness,
 	      and $\texttt{coin}_i$ is a random coin with probability $1/m$ of equaling 1.
 	      \begin{itemize}
-		      \item If $i \leq k$, insert the item into the queue along with $e_i$ as its tag via $\PQInsert(e_i, \mu_i)$.
+		      \item If $i \leq k$, insert the item into the queue along with $e_i$ as its tag via $\resSampling.\PQInsert(e_i, \mu_i)$.
 		      \item If $i > k$ and $\texttt{coin}_i = 1$, replace the smallest labeled item in the queue with the new item if the coin is 1.
 		      \item If $i > k$ and $\texttt{coin}_i = 0$, do nothing.
+					\item Return $\resSampling$
 	      \end{itemize}
 
-	\item  $\mu_{a_1}, \mu_{a_2}, ..., \mu_{a_k} \gets \ResevOutput()$ where $a_1, ..., a_k$ are a uniformly random ordered susbset of $[n]$
+	\item  $\mu_{a_1}, \mu_{a_2}, ..., \mu_{a_k} \gets \ResevOutput(\resSampling)$ where $a_1, ..., a_k$ are a uniformly random ordered susbset of $[n]$
+	if $e_i, \texttt{coin}_i$ are independentally sampled uniformly at random for all $i \in n$ where $n$ is the number of $\ResevInsert$ calls.
 	      \begin{itemize}
 		      \item Call $\PQExtract$ $k$ times setting $\mu_{a_\ell}$ to the $\ell$-th call to $\PQExtract$ where $\ell \in [k]$.
 	      \end{itemize}

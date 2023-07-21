@@ -1,6 +1,5 @@
 \section{Semi Honest Reservoir Sampling Based Protocol}
 \label{sec:msle_protocol}
-\newcommand{\resSampling}{\mathcal{R}}
 \newcommand{\partDecrySet}{\mathcal{P}}
 We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functionality.
 
@@ -102,7 +101,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 
 % TODO: one election??
 \begin{theorem}[Semi-honest simulation security]
-	Assuming the existence of a PRF, a $\TFHE$ scheme with semantic security (\cref{def:semanticSecurityTFHE}) and simulation security (\cref{def:simSecTFHE}),
+	Assuming the existence of a PRF with polynomial stretch, a $\TFHE$ scheme with semantic security (\cref{def:semanticSecurityTFHE}) and simulation security (\cref{def:simSecTFHE}),
 	then the protocol outline in \cref{fig:protocolMSLE} is semi-honest simulation secure.
 	\begin{proof}
 		We will show that the simulator outlined in \cref{fig:simMSLE} is a simulator for the view of corrupt
@@ -122,6 +121,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 				the view of $(\registerElectAdd, \eid, \ct'_j)$ is indistinguishable to the real protocol as
 				$\registerElectAdd$ is completely determined by prior calls to $\registerElectAdd$ and $\ct'_j$.
 
+				Let $\resSampling_{\eid, \simCMSLE}$ denote the reservoir sampling data-structure in the simulator
 				We then note that, after $\alpha$, for $\alpha \in [n]$,  calls to $\registerElectAdd$, the simulator's $\resSampling_{\eid, \simCMSLE} \compInd \resSampling_\eid$
 				of the protocol as $\resSampling$ is completly determined by the calls to $\registerElectAdd$.
 			\end{proof}
@@ -130,8 +130,9 @@ We will now show that the above protocol is semi-honest simulation secure.
 			\begin{proof}
 				Now note that, when $\elect$ is called by $P_i$ for $i \in C$, $\ct'_\ell \compInd \ct_\ell$ for all $\ell \in [k]$
 				as $\resSampling_\eid$ in the simulator is indistinguishable from that of the real protocol.
-				We also have that, by the ideal functionality of $\elect$, $\set{a'_\ell}_{\ell \in [k]}$ is a random subset of $[n]$ with random order with size $k$
-				and that by the correctness of $\ResevOutput$, $\set{a_\ell}_{\ell \in [k]}$ is a randomly chosen ordered subset of $[n]$.
+				We also have that, by the ideal functionality of $\elect$, $\set{a'_\ell}_{\ell \in [k]}$ is a random subset of $[n]$ with random order with size $k$.
+				Then, note that $e_i, \texttt{coin}_i = PRF(k_\TFHE, c_i)$ in the protocol is indistinguishable from a randomly sampled $e_i, \texttt{coin}_i$
+				by the semantic security of PRFs. Thus, by the correctness of $\ResevOutput(\resSampling)$, $\set{a_\ell}_{\ell \in [k]}$ is a randomly chosen ordered subset of $[n]$.
 				So then, $\set{a'_\ell}_{\ell \in [k]} \compInd \set{a_\ell}_{\ell \in [k]}$.
 				Remembering that $c'_\beta \compInd c_\beta$ for all $\beta \in [n]$, we have that $c'_{a_1}, ..., c'_{a_k} \compInd c_{a_1}, ..., c_{a_k}$.
 				So then, we have that the decryption shares, $p'_i$, for all $i \in [n]$ are simulated by the simulator such that $p'_i \compInd p_i$ in the real protocol
