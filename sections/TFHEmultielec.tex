@@ -42,7 +42,7 @@ We define the setup, $\setup$, for the protocol as follows:
 			% \item $n \gets n + 1$
 
 			\begin{itemize}
-				\item $(\registerElect, \eid)$
+				\item $(\registerElect, \eid)$ called by party $P_i$
 				      \begin{itemize}
 					      \item Sample $s_i, r_i \randomGet \F_q$, $\ct_i \gets \Enc(c_i)$
 					      \item Broadcast $(\registerElectAdd, \eid, \ct_i)$ to all parties and run \\$(\registerElectAdd, \eid, \ct_i)$
@@ -56,7 +56,7 @@ We define the setup, $\setup$, for the protocol as follows:
 					            % \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
 					      \item If $\resSampling_\eid$ is not stored, $\resSampling_\eid \gets \ResevInit(k)$
 					      \item Set $\Enc(e_i), \Enc(\texttt{coin}_i) \gets \TFHEEval(C_{PRF}, \crs, \ct_j)$
-					            where $C$ is the PRF circuit with polynomial stretch and $\crs$ is the key to the PRF. 
+					            where $C$ is the PRF evaluation circuit and $\crs$ is the key to the PRF. 
 					            % TODO: formally define PRF
 					      \item Call $\resSampling_\eid \gets \TFHEEval(C, \resSampling_\eid, \ct_j, \Enc(e_i), \Enc(\texttt{coin}_i))$ where
 					            $C$ is the reservoir sampling circuit for $\ResevInsert$. % TODO: is this right defn of resev insert?
@@ -103,7 +103,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 
 % TODO: one election??
 \begin{theorem}[Semi-honest simulation security]
-	Assuming the existence of a PRF with polynomial stretch, a $\TFHE$ scheme with semantic security (\cref{def:semanticSecurityTFHE}) and simulation security (\cref{def:simSecTFHE}),
+	Assuming the existence of a PRF, a $\TFHE$ scheme with semantic security (\cref{def:semanticSecurityTFHE}) and simulation security (\cref{def:simSecTFHE}),
 	then the protocol outline in \cref{fig:protocolMSLE} is semi-honest simulation secure.
 	\begin{proof}
 		We will show that the simulator outlined in \cref{fig:simMSLE} is a simulator for the view of corrupt
@@ -112,7 +112,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 
 		% TODO: ordering?
 		\begin{lemma}
-			The views of $\registerElect, \registerElectAdd$ are simulated by the simulator.
+			The views of $\registerElect, \registerElectAdd$ in the protocol and simulator are indistinguishable.
 			\begin{proof}
 				% Note that the view of the protocol is $(s_i, r_i, \ct_i)$ for $\registerElect$.
 				The simulator firsts simulates the view of the protocol for all calls to $\registerElect$ from $P_i$, $i \in C$.
@@ -130,7 +130,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 			\end{proof}
 		\end{lemma}
 		\begin{lemma}
-			The views of $\elect, \electDone$ are simulated by the simulator.
+			The views of $\elect, \electDone$ in the protocol and simulator are indistinguishable.
 			\begin{proof}
 				When $\elect$ is called by $P_i$ for $i \in C$, we have that for $\ct'_\ell = \TFHEEval(C_\ResevOutput, \resSampling_{\eid, \simCMSLE})$, $\ct'_\ell \compInd \ct_\ell$ for all $\ell \in [k]$.
 				This is because $\resSampling_{\eid, \simCMSLE}$ is indistinguishable from that of the real protocol.
