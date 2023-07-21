@@ -2,10 +2,9 @@
 \label{sec:msle_protocol}
 \newcommand{\resSampling}{\mathcal{R}}
 \newcommand{\partDecrySet}{\mathcal{P}}
-We outline a semi-honest protocol in \cref{fig:protSemiHonest} for the MSLE functionality.
+We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functionality.
 
 \begin{figure}
-	\label{fig:protSemiHonest}
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
@@ -23,12 +22,12 @@ We outline a semi-honest protocol in \cref{fig:protSemiHonest} for the MSLE func
 			% TODO: formal
 
 			\begin{itemize}
-				% \item $\setup$ 
-				%       \begin{itemize}
-				% 	      \item Set $k_{\texttt{TFHE}} \overset{\$}{\leftarrow} U_q.$ 
-				% 				\item Publish CRS, $\crs = \Enc(k_{\texttt{TFHE}})$.
-				% 	            % This will be the key to the PRF
-				%       \end{itemize}
+				\item $\setup$ 
+				      \begin{itemize}
+					      \item Set $k_{\texttt{TFHE}} \overset{\$}{\leftarrow} U_q.$ 
+								\item Publish CRS, $\crs = \Enc(k_{\texttt{TFHE}})$.
+					            % This will be the key to the PRF
+				      \end{itemize}
 
 				% \item $\register$ from party $P_i$
 				%       \begin{itemize}
@@ -42,19 +41,21 @@ We outline a semi-honest protocol in \cref{fig:protSemiHonest} for the MSLE func
 				% \item Add $\Enc(c_i)$ to $C$.
 				% \item $n \gets n + 1$
 
-				\item $\registerElect$ from party $P_i$
+				\item $(\registerElect, \eid)$
 				      \begin{itemize}
 					      \item Sample $s_i, r_i \randomGet \F_q$, $\ct_i \gets \Enc(c_i)$
 					      \item Broadcast $(\registerElectAdd, \eid, \ct_i)$ to all parties and run \\$(\registerElectAdd, \eid, \ct_i)$
 				      \end{itemize}
 				\item $(\registerElectAdd, \eid, \ct_j)$ from party $P_j$ for $j \in [n]$
 				      \begin{itemize}
-					      %  Not needed because semi-honest case
-					      % \item If $\eid \in \FinElect$, do nothing.
-					      % \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
+					      \item If $b_\eid$ is not stored, set $b_\eid = 0$
+					      \item $b_\eid \gets b_\eid+1$
+					            %  Not needed because semi-honest case
+					            % \item If $\eid \in \FinElect$, do nothing.
+					            % \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
 					      \item If $\resSampling_\eid$ is not stored, $\resSampling_\eid \gets \ResevInit(k)$
 					      \item Set $\Enc(e_i), \Enc(\texttt{coin}_i) \gets \TFHEEval(C_{PRF}, \crs, \ct_j)$
-					            where $C$ is the PRF circuit with strech and $\crs$ is the key to the PRF. TODO: defn PRF with stretch
+					            where $C$ is the PRF circuit with polynomial stretch and $\crs$ is the key to the PRF. TODO: defn PRF with stretch
 					            % TODO: formally define PRF
 					      \item Call $\resSampling_\eid \gets \TFHEEval(C, \resSampling_\eid, \ct_j, \Enc(e_i), \Enc(\texttt{coin}_i))$ where
 					            $C$ is the reservoir sampling circuit for $\ResevInsert$. % TODO: is this right defn of resev insert?
@@ -62,29 +63,28 @@ We outline a semi-honest protocol in \cref{fig:protSemiHonest} for the MSLE func
 					      \item Store $\resSampling_\eid$.
 				      \end{itemize}
 
-				\item $\elect(\eid)$ from party $P_i$
+				\item $(\elect, \eid)$ called by user $P_i$ when  $b_\eid = n$
 				      \begin{itemize}
 					      % \item If $\eid \in \FinElect$, then return $\bot$ and do nothing.
-								\item For $\ell \in [k]$, set $\ct_{\ell} \gets \ResevOutput(\resSampling_\eid)$
-								\item Set $p_i \gets \TFHEPartDec(\ct_1, ..., \ct_k)$
-								\item Broadcast $(\electDone, p_i)$, call $(\electDone, p_i)$
-							\end{itemize}
-				\item $(\electDone, p_j)$ from party $P_j$
-							\begin{itemize}
-								\item Retrive $\partDecrySet^\eid$ if it is stored, otherwise set $\partDecrySet^\eid \gets \emptyset$.
-								\item Set $\partDecrySet^\eid \gets \partDecrySet^\eid \bigcup \{p_j\}$
-								\item If $|\partDecrySet^\eid| \geq t$, set $c_{a_1}, ..., c_{a_\ell} \gets \TFHEFinDec(\partDecrySet^\eid)$
-					      \item Then, at least $t$ parties will submit decryption shares, $p_i = \TFHEPartDec(\Enc(c_{a_1}), ..., \Enc(c_{a_2}))$ to get $c_{a_1}, ..., c_{a_k} = \TFHEFinDec(\{p_i\})$ and then
-					      store $E_\eid = \left\{c_{a_1}, ..., c_{a_k}\right\}$.
+					      \item For $\ell \in [k]$, set $\ct_{\ell} \gets \TFHEEval(C_\ResevOutput, \resSampling_\eid)$
+					      \item Set $p_i \gets \TFHEPartDec(\ct_1, ..., \ct_k)$
+					      \item Broadcast $(\electDone, \eid, p_i)$ and call $(\electDone, \eid, p_i)$
 				      \end{itemize}
-				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
+				\item $(\electDone, \eid, p_j)$ from party $P_j$
 				      \begin{itemize}
-					      %  TODO: formal with commitments...
-								% TODO:
-					      \item $P_i$ submits a proof that they know the opening to $c_{a_\ell}$.
-					            If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
-					            Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
+					      \item Retrive $\partDecrySet^\eid$ if it is stored, otherwise set $\partDecrySet^\eid \gets \emptyset$.
+					      \item Set $\partDecrySet^\eid \gets \partDecrySet^\eid \bigcup \{p_j\}$
+					      \item If $|\partDecrySet^\eid| = n$, set $c_{a_1}, ..., c_{a_\ell} \gets \TFHEFinDec(\partDecrySet^\eid)$
+					      \item Store $\partDecrySet^\eid$.
 				      \end{itemize}
+				\item $(\reveal, \eid, \ell)$
+				      \begin{itemize}
+					      \item Broadcast $(\texttt{result}, \eid, \ell, i)$
+				      \end{itemize}
+				      % \item $(\revealClaim, \eid, \ell, j)$ from party $P_j$
+				      % 			\begin{itemize}
+				      % 				\item Broadcast $(\texttt{result}, \eid, \ell, j)$
+				      % 			\end{itemize}
 			\end{itemize}
 		\end{minipage}
 	}
@@ -96,248 +96,171 @@ We outline a semi-honest protocol in \cref{fig:protSemiHonest} for the MSLE func
 \subsection{Semi Honest Simulation Security}
 
 
-We can show semi-honest simulation security by showing that the view of each party $i$ in the real protocol
-can be simulated throughout the course of one election and then that this simulation can be extended for a polynomial number of elections.
+\newcommand{\simCMSLE}{\texttt{Sim}_C}
 
-\newcommand{\totalReg}{\overline{n}}
-\newcommand{\totalRev}{\overline{k}}
+We will now show that the above protocol is semi-honest simulation secure.
 
+% TODO: one election??
+\begin{theorem}[Semi-honest simulation security]
+	Assuming the existence of a PRF, a $\TFHE$ scheme with semantic security (\cref{def:semanticSecurityTFHE}) and simulation security (\cref{def:simSecTFHE}),
+	then the protocol outline in \cref{fig:protocolMSLE} is semi-honest simulation secure.
+	\begin{proof}
+		We will show that the simulator outlined in \cref{fig:simMSLE} is a simulator for the view of corrupt
+		parties $C \subset [n]$ and $|C| < t$ by showing that the simulator's view and the protocol's view are indistinguishable for all calls
+		via the following three lemmas.
 
-\newcommand{\simIMSLE}{\texttt{Sim}_i}
+		% TODO: ordering?
+		\begin{lemma}[$\registerElect, \registerElectAdd$ are simulation secure]
+			\begin{proof}
+				% Note that the view of the protocol is $(s_i, r_i, \ct_i)$ for $\registerElect$.
+				The simulator firsts simulates the view of the protocol for all calls to $\registerElect$ from $P_i$, $i \in C$.
+				Note that the simulator uses the same inputs, $s_i, r_i$ as in the honest protocol and thus the view is identical.
+				Moreover, the view of $(\registerElectAdd, \eid, \ct'_i)$ is identical to the real protocol as $\ct'_i = \ct_i$.
+				For $j \notin C$, note that $c'_j \compInd c_j$ by the hiding property of commitments and thus
+				$\ct'_j \compInd \ct_j$.
+				Then, assuming that prior calls to $\registerElect$ by $P_j$ are simulated by the simulator,
+				the view of $(\registerElectAdd, \eid, \ct'_j)$ is indistinguishable to the real protocol as
+				$\registerElectAdd$ is completely determined by prior calls to $\registerElectAdd$ and $\ct'_j$.
+
+				We then note that, after $\alpha$, for $\alpha \in [n]$,  calls to $\registerElectAdd$, the simulator's $\resSampling_{\eid, \simCMSLE} \compInd \resSampling_\eid$
+				of the protocol as $\resSampling$ is completly determined by the calls to $\registerElectAdd$.
+			\end{proof}
+		\end{lemma}
+		\begin{lemma}[$\elect, \electDone$ are simulation secure]
+			\begin{proof}
+				Now note that, when $\elect$ is called by $P_i$ for $i \in C$, $\ct'_\ell \compInd \ct_\ell$ for all $\ell \in [k]$
+				as $\resSampling_\eid$ in the simulator is indistinguishable from that of the real protocol.
+				We also have that, by the ideal functionality of $\elect$, $\set{a'_\ell}_{\ell \in [k]}$ is a random subset of $[n]$ with random order with size $k$
+				and that by the correctness of $\ResevOutput$, $\set{a_\ell}_{\ell \in [k]}$ is a randomly chosen ordered subset of $[n]$.
+				So then, $\set{a'_\ell}_{\ell \in [k]} \compInd \set{a_\ell}_{\ell \in [k]}$.
+				Remembering that $c'_\beta \compInd c_\beta$ for all $\beta \in [n]$, we have that $c'_{a_1}, ..., c'_{a_k} \compInd c_{a_1}, ..., c_{a_k}$.
+				So then, we have that the decryption shares, $p'_i$, for all $i \in [n]$ are simulated by the simulator such that $p'_i \compInd p_i$ in the real protocol
+				and thus all calls to $\electDone$ are indistinguishable from the real protocol as $\electDone$ is completely
+				determined by $\set{p_i}_{i \in [n]}$.
+
+			\end{proof}
+		\end{lemma}
+		\begin{lemma}[$\reveal$ is simulation secure]
+			\begin{proof}
+			Finally, note that $\reveal$ in the simulator is identical to that of the real protocol
+			as in the semi-honest setting, only parties which have won an election will call $\reveal$.
+			\end{proof}
+		\end{lemma}
+		We thus have that the view of the simulator is identical to that of the real protocol by the above three lemmas.
+	\end{proof}
+\end{theorem}
 
 
 \begin{figure}
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
-			\textbf{Simulator for Threshold MSLE} $\simIMSLE$:
-			Initialize $\nBids = 0$. Fix some $k \in \N$ to denote the number of rounds.
-			Initialize an empty set of tickets, $R$, an empty lookup of sets of parties in each election, $S$,
-			a set of finished elections $\FinElect$,
-			an empty lookup of election results, $E$,
-			and a set $S \gets \emptyset$ to denote the set of sets of active participants in each round.
-			Moreover, set a random tape for the simulator.
-
-			The simulator knows, input for party $P_i$, $\TFHESk_i$ and $s_i$.
+			\textbf{Simulator for Threshold MSLE} $\simCMSLE$ where $C \subseteq [n]$ and $|C| < t$:\\
+			% Initialize an empty set of tickets, $R$, an empty lookup of sets of parties in each election, $S$,
+			Initializie a set of finished elections $\FinElect$ and set a random tape for the simulator.
+			% an empty lookup of election results, $E$,
+			% and a set $S \gets \emptyset$ to denote the set of sets of active participants in each round.
+			% The simulator knows, input for party $P_i$, $\TFHESk_i$ and $s_i$.
 
 			\begin{itemize}
-				\item $\register$ from party $P_j$
+				% \item $\register$ from party $P_j$
+				%       \begin{itemize}
+				% 	      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
+				% 	            %  Can we use a different secret key here?
+				% 	      \item Simulate the secure channel communication with party $P_j$ if $i \neq j$.
+				% 	      \item Run $\register$ honestly if $i = j$ by sending $\TFHESk_i$ to $P_i$
+				% 	            % TODO: formal
+				%       \end{itemize}
+				\item $(\registerElect, \eid)$ for party $P_j$
 				      \begin{itemize}
-					      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
-					            %  Can we use a different secret key here?
-					      \item Simulate the secure channel communication with party $P_j$ if $i \neq j$.
-					      \item Run $\register$ honestly if $i = j$ by sending $\TFHESk_i$ to $P_i$
-					            % TODO: formal
+					      \item If $j \in C$ Follow the protocol's $\registerElect$ using use $s_i, r_i, c_i, \ct_j$ from the real protocol and call $(\registerElectAdd, \eid, \ct_j)$.
+					            Set $c'_j \gets c_j$ and store $c'_j$.
+					      \item If $j \notin C$, $s'_j, r'_j \randomGet \F_q, c'_j \gets \comm(s'_j, r'_j), \ct'_j \gets \Enc(c'_j)$
+					            Store $c'_j$ and follow the protocol by calling $(\registerElectAdd, \eid, \ct'_j)$.
 				      \end{itemize}
 
-				\item $\registerElect(\eid, w, s_i, \TFHESk_i)$ from party $P_j$.
-				      \begin{itemize}
-					      \item If $j \neq i$, the simulator samples a random value $s'_j$ and follows the protocol directly using $s'_\TFHE$ and $\Enc(c'_j)$ where $c'_j = \comm(s'_j)$.
-					            Store $c'_j$ in a lookup table as well as its committed message.
-					      \item If $j = i$, the simulator will use the commitment $c_i = \comm(s_i)$. And run $\registerElect$ as is in the protocol
-				      \end{itemize}
+				      % \item $(\registerElectAdd, \eid)$ from party $P_j$.
+				      %       \begin{itemize}
+				      % 	      \item If $j \notin C$, $s'_j, r'_j \randomGet \F_q, c'_j \gets \comm(s'_j, r'_j), \ct'_j \gets \Enc(c'_j)$.
+				      % 				 	Store $c'_j$ and follow the protocol for $\registerElectAdd$ directly using $\ct'_j$ as input.
+				      % 				\item If $j \in C$, use $\ct_j$ from the real protocol and follow the protocol for $\registerElectAdd$ directly.
+				      %       \end{itemize}
 
-				      % TODO: not really... we need to make sure that the wins and losses end up correct here...			
+				\item $(\elect, \eid, \texttt{out})$ from party $P_j$ where $\texttt{out}$ is $\idealMSLE.\elect$ output $(\texttt{outcome}, \eid, q)_i$ for all $i \in [n]$ where $q \in \set{1, ..., k, \bot}$.
 
-				\item $\elect(\eid, \texttt{out}, s_i, \TFHESk_i)$ where the $\texttt{out}$ is output $\bot$ or $(\texttt{outcome}, \eid, q)_i$ for all $i \in [n]$ where $q \in \set{1, ..., k, \bot}$.
 				      \begin{itemize}
-					      \item Let $\totalReg$ be the total number of successful calls to $\registerElect(\eid, ., .)$ before the election for $\eid$
-					      \item If the output is $\bot$, return $\bot$.
-					      \item Let $a'_1, ..., a'_k$ be the ordered set of parties that won the election. I.e.\ if $q_i = \ell$ then $a'_\ell = i$.
-					      \item The simulator then gives $\simTFHE(C, \set{\Enc(c'_j)}_{j \in [\totalReg]}, c'_{a'_1}, ..., c'_{a'_\ell}, S, \texttt{st})$
-					            to the TFHE simulator to get a list of partial decryptions, $p_1, ..., p_{t}$ where $S$ is a qualified set % TODO: CHECK CAN USE!
-					            and $C$ is the reservoir sampling circuit with PRF seed $s_\TFHE$ hardcoded.
-					            Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
-					      \item Add $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$ to $E$.
+					      \item For $\ell \in [k]$, set $\ct'_\ell \gets \TFHEEval(C_\ResevOutput, \resSampling_\eid)$
+					      \item Let $a'_1, ..., a'_k \in [n]$ such that if $q_i = \ell$ then $a'_\ell = i$.
+					      \item Call $p'_1, ..., p'_{n} \gets \simTFHE(C_\texttt{Ident}, \set{\ct'_\ell}, c'_{a'_1}, ..., c'_{a'_\ell}, [n], \texttt{st})$
+					            % Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
+					      % \item Store $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$
+					      \item Call $(\electDone, \eid, p_j)$ from the protocol.
 				      \end{itemize}
-				\item $\texttt{reveal}(\eid, \ell, \Enc(c'_j))$ from $P_j$ and output $\bot$ or $(\texttt{result}, \eid, \ell, j)$.
+				      % \item $(\electDone, \eid)$ from party $P_j$
+				      % 			\begin{itemize}
+				      % 				\item If $j \in C$, then follow the protocol for $\electDone$ directly using $p_j$.
+				      % 			\end{itemize}
+				\item $(\texttt{reveal}, \eid, \ell)$ for $P_j$ and $\idealMSLE.\reveal$ output $(\texttt{result}, \eid, \ell, j)$ or $(\texttt{reject}, \eid, \ell, j)$.
 				      \begin{itemize}
 					      % TODO: faulty? oh yeah not here...
-					      \item As the simulator has knowledge of the openings to all of the commitments $c'_j$ used, the simulator
-					            to honestly run $\reveal(\eid, \ell, \Enc(c'_j))$ with commitment $c'_j$ and opening $s'_j$.
-					      \item Note that in the semi-honest setting, the output is never $\bot$
+					      % \item If $\idealMSLE.\reveal$ outputs $\texttt{results}$
+					      \item Broadcast $(\texttt{result}, \eid, \ell, j)$
 				      \end{itemize}
 			\end{itemize}
 		\end{minipage}
 	}
 	\caption{Description of the MSLE protocol}
-	\label{fig:protocolMSLE}
+	\label{fig:simMSLE}
 \end{figure}
 
-We will now show that $\simIMSLE$ is indeed a simulator for the view of $\pi_{\text{MSLE}}$
-for $\registerElect$, $\elect$, and $\reveal$.
+% We will now show that $\simIMSLE$ is indeed a simulator for the view of $\pi_{\text{MSLE}}$
+% for $\registerElect$, $\elect$, and $\reveal$.
 
-\begin{lemma}
-	[$\registerElect$ is simulation secure]
-	\label{lemma:regElectSemiHonest}
-	\begin{proof}
-		The simulator gets as input party $i$'s secret value, $s_i$, party $i$'s $\TFHE$ share $\TFHESk_i$,
-		$\eid$, and ticket number $w$. We note that if $\eid \in \FinElect$ or $(i, w) \notin R$, then the simulator can simply output $\bot$ and
-		is identical to the real protocol.
-		Otherwise, if party $P_i$ calls $\registerElect$, then the simulator knows the input of $P_i$ and can simulate the protocol
-		honestly. If party $P_j$ call $\registerElect$ for some $j \neq i$, then the view of the protocol
-		is that of $$(\Enc(c_j), \Enc(e_i, \texttt{coin}_i), \ResevInsertN{\eid}(\Enc(c_j, e_i, \texttt{coin}_i))).$$
-		Note that this view is completely determined by $\Enc(c_j)$. Also, note that $c_j$ is drawn
-		from a random distribution and is not in the view of the real protocol. Thus,
-		by semantic security of $\TFHE$ (\cref{def:semanticSecurityTFHE}) we have that
-		$\Enc(c_j) \compInd \Enc(c'_j)$ where $c'_j$ is a commitment to a random value.
-	\end{proof}
-\end{lemma}
+% \begin{lemma}
+% 	[$\registerElect$ is simulation secure]
+% 	\label{lemma:regElectSemiHonest}
+% 	\begin{proof}
+% 		The simulator gets as input party $i$'s secret value, $s_i$, party $i$'s $\TFHE$ share $\TFHESk_i$,
+% 		$\eid$, and ticket number $w$. We note that if $\eid \in \FinElect$ or $(i, w) \notin R$, then the simulator can simply output $\bot$ and
+% 		is identical to the real protocol.
+% 		Otherwise, if party $P_i$ calls $\registerElect$, then the simulator knows the input of $P_i$ and can simulate the protocol
+% 		honestly. If party $P_j$ call $\registerElect$ for some $j \neq i$, then the view of the protocol
+% 		is that of $$(\Enc(c_j), \Enc(e_i, \texttt{coin}_i), \ResevInsertN{\eid}(\Enc(c_j, e_i, \texttt{coin}_i))).$$
+% 		Note that this view is completely determined by $\Enc(c_j)$. Also, note that $c_j$ is drawn
+% 		from a random distribution and is not in the view of the real protocol. Thus,
+% 		by semantic security of $\TFHE$ (\cref{def:semanticSecurityTFHE}) we have that
+% 		$\Enc(c_j) \compInd \Enc(c'_j)$ where $c'_j$ is a commitment to a random value.
+% 	\end{proof}
+% \end{lemma}
 
-\begin{lemma}[$\elect$ is simulation secure]
-	\begin{proof}
-		If the view of the real protocol is $\bot$ because $\eid$ was already called, then the simulator can simply output $\bot$
-		and is thus identical to the real protocol.
-		Otherwise, note that the view of the protocol is
-		$$
-			(c_{a_1}, ..., c_{a_k}, p_1, ..., p_t, \texttt{view}(C(\Enc(c_{a_1}, e_1, \texttt{coin}_1), ..., \Enc(c_{a_k}, e_k, \texttt{coin}_k) ))).
-		$$
-		We will now show that simulator can simulate the above view.
-		The simulator needs to ``fix'' the output of $\elect$ to yield
-		a list of commitments such that, if $a'_\ell = j$ if party $j$ wins election $\ell$.
-		The TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using
-		$$\simTFHE(C, \set{\Enc(c'_j, e_j, \texttt{coin}_j)}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st}).$$
-		Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
-		and the decryption shares are simulated as well such that the cipher texts decrypt
-		to $c'_{a'_1}, ..., c'_{a'_k}$.
-		We also have that, by the ideal functionality of $\elect$, $\set{(a'_\ell, .)}_{\ell \in [k]}$ is a randomly chosen
-		ordered subset from $S_\eid$. We can note that, by the correctness of reservoir sampling,
-		the output of $\ResevOutputN{\eid}()$ in the protocol is a randomly chosen ordered subset from $S_\eid$.
-		We then have that the distribution of the simulator's $\set{(a'_\ell, .)}_{\ell \in [k]} \equiv \set{(a_\ell, .)}_{\ell \in [k]}$
-		where $a_\ell$ is the party that won election $\ell$ in the protocol.
-		We then have that, by the simulation security of $\registerElect$ (\cref{lemma:regElectSemiHonest}), $c'_{a'_1}, ..., c'_{a'_k} \compInd c_{a_1}, ..., c_{a_k}$ .
-	\end{proof}
-\end{lemma}
+% \begin{lemma}[$\elect$ is simulation secure]
+% 	\begin{proof}
+% 		If the view of the real protocol is $\bot$ because $\eid$ was already called, then the simulator can simply output $\bot$
+% 		and is thus identical to the real protocol.
+% 		Otherwise, note that the view of the protocol is
+% 		$$
+% 			(c_{a_1}, ..., c_{a_k}, p_1, ..., p_t, \texttt{view}(C(\Enc(c_{a_1}, e_1, \texttt{coin}_1), ..., \Enc(c_{a_k}, e_k, \texttt{coin}_k) ))).
+% 		$$
+% 		We will now show that simulator can simulate the above view.
+% 		The simulator needs to ``fix'' the output of $\elect$ to yield
+% 		a list of commitments such that, if $a'_\ell = j$ if party $j$ wins election $\ell$.
+% 		The TFHE simulator can simply output the decryption shares, $p_1, ... p_t$ using
+% 		$$\simTFHE(C, \set{\Enc(c'_j, e_j, \texttt{coin}_j)}_{j \in [\totalReg]}, c'_1, ..., c'_{a_\ell}, S, \texttt{st}).$$
+% 		Note that the reservoir sampling circuit is indeed simulated by $\simTFHE$
+% 		and the decryption shares are simulated as well such that the cipher texts decrypt
+% 		to $c'_{a'_1}, ..., c'_{a'_k}$.
+% 		We also have that, by the ideal functionality of $\elect$, $\set{(a'_\ell, .)}_{\ell \in [k]}$ is a randomly chosen
+% 		ordered subset from $S_\eid$. We can note that, by the correctness of reservoir sampling,
+% 		the output of $\ResevOutputN{\eid}()$ in the protocol is a randomly chosen ordered subset from $S_\eid$.
+% 		We then have that the distribution of the simulator's $\set{(a'_\ell, .)}_{\ell \in [k]} \equiv \set{(a_\ell, .)}_{\ell \in [k]}$
+% 		where $a_\ell$ is the party that won election $\ell$ in the protocol.
+% 		We then have that, by the simulation security of $\registerElect$ (\cref{lemma:regElectSemiHonest}), $c'_{a'_1}, ..., c'_{a'_k} \compInd c_{a_1}, ..., c_{a_k}$ .
+% 	\end{proof}
+% \end{lemma}
 
-\begin{lemma}[$\reveal$ is simulation secure]
-	\begin{proof}
-		Note that the simulator can simply run $\reveal$ honestly as the simulator has knowledge of the openings to all of the commitments $c'_j$ used
-		and thus has an identical view to that of the real protocol.
-	\end{proof}
-\end{lemma}
-
-\section{Malicious Adversary Secure Protocol}
-\newcommand{\relEncr}{\proofRel_\texttt{Encr}}
-\newcommand{\relProt}{\proofRel_\texttt{Prot}}
-Before outlining the malic
-\newcommand{\inCTList}{\texttt{Inps}}
-\newcommand{\decryptShares}{\texttt{Shares}}
-Before describing the protocol, we need to define two relationships which will be used in
-conjunction with two different NZIKs. A tuple $((\TFHEPk, \ct), \mu) \in \relEncr$ if
-$\ct = \Enc(\mu)$ under TFHE public key $\TFHEPk$.
-A tuple $((p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i) \in \relProt$ if
-% Hmmmm.... do we need verifiable encryption here? I think so...
-
-% \begin{figure}
-% 	\label{fig:protMal}
-\centering
-% \fbox{
-\begin{mdframed}
-	\textbf{The MSLE Protocol} $\pi_{\text{MSLE}}$:
-	Initialize $\nBids = 0$. Fix some $k \in \N$ to denote the number of rounds.
-	Initialize an empty set of tickets, $R$, an empty lookup of sets of parties in each election, $S$,
-	an empty lookup of reservoir sampling data structures $\resSampling$,
-	and a set of finished elections $\FinElect$. Initialize an empty lookup of election results, $E$.
-
-	\begin{itemize}
-		\item $\init$
-		      \begin{itemize}
-			      \item Set $n = 0$
-			      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
-			      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
-			            This will be the key to the PRF
-		      \end{itemize}
-
-		\item $\register$ from party $P_i$
-		      \begin{itemize}
-			      %  TODO: not within definition of TFHE, have to change up definition :((
-			      %  TODO: formalize secure channel?
-			      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$.
-			            Then, sample randomness $r$ and publish a commitment, $c_{\TFHESk_i} = \comm(\TFHESk_i, r)$. Send $\TFHESk_i$ and $r$
-			            to party $P_i$ over a secure channel.
-
-			      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
-		      \end{itemize}
-		      % \item Add $\Enc(c_i)$ to $C$.
-		      % \item $n \gets n + 1$
-
-		\item $\registerElect(\eid, \Enc(c_j), w)$ from party $P_j$ where $c_j = \comm(s_j)$ for a randomly sampled secret $s_j$.
-		      Every honest party does the following:
-		      \begin{itemize}
-			      \item If $\eid \in \FinElect$, then broadcast $\bot$ and do nothing.
-			      \item TODO: NEED TO CHECK VALID ENCRYPTION
-			      \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, broadcast $\bot$ and do nothing.
-			      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$
-			      \item If $\inCTList$ is not initialize, set it to an empty list. Then, set $\inCTList[w] \gets \Enc(c_j)$
-			      \item The CRS will be used to run a PRF to get $\Enc(e_j), \Enc(\texttt{coin}_j) =$ \\$\Enc(\texttt{PRF}(c_j, s_\texttt{TFHE}))$
-			      \item $\Enc(c_j)$ will be fed to the encrypted streaming sampler along with randomness via
-			            $\ResevInsertN{\eid}(\Enc(c_j), \Enc(e_j), \Enc(\texttt{coin}_j))$.
-		      \end{itemize}
-
-		\item $\elect(\eid)$. Each party, $P_i$ does the following:
-		      \begin{itemize}
-			      \item If $\eid \in \FinElect$, then broadcast $\bot$ and do nothing.
-			      \item The encrypted streaming sampler will output a list of $k$ messages via calling \\$\ResevOutputN{\eid}()$ $k$ times: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
-			      \item TODO: NEED TO CHECK ELECTION SET SIZE
-			      \item Set $n_\bot \gets 0$
-			            %  TODO: formal with TFHE decryption shares
-			            % \item Create a proof using $\proofElem_\eid \gets \NZIKProve(\NZIKCRS, (p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i)$
-			      \item Generate decryption share $p_i$ and set $\decryptShares_\eid \gets \set{p_i}$
-			      \item Send $(\texttt{prove}, sid, (p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i)$ to $\NZIKIdeal$.
-			            % \item Send $
-			      \item Upon receiving $\bot$, set $n_\bot \gets n_\bot + 1$.
-			      \item Upon receiving $(\texttt{proof}, sid, j, (p_j, \inCTList', \Enc(s_\TFHE)'))$ from $\NZIKIdeal$,
-			            check that $\inCTList = \inCTList$ and that $\Enc(s_\TFHE) = \Enc(s_\TFHE)'$.
-			            If the equalities hold, set $\decryptShares_\eid \gets \decryptShares_\eid \bigcup \set{p_j}$.
-			      \item If $|\decryptShares_\eid| \geq t$, use the decryption shares to get $\set{c_{a_1}, ..., c_{a_k}} =$\\ $\TFHEFinDec(\decryptShares)$.
-			            And add $E_\eid = \left\{c_{a_1}, ..., c_{a_k}\right\}$ to $E$.
-			            % \item Then, at least $t$ parties will submit decryption shares, $p_i = \TFHEPartDec(\Enc(c_{a_1}), ..., \Enc(c_{a_2}))$ to get $c_{a_1}, ..., c_{a_k} = \TFHEFinDec(\{p_i\})$.
-			      \item If $n_\bot \geq (|\inCTList| - t) + 1$, then abort and output $\bot$.
-			      \item TODO: When to abort? At time out, at next election? Etc.
-		      \end{itemize}
-		      \pagebreak
-		\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
-		      \begin{itemize}
-			      %  TODO: formal with commitments...
-			      \item $P_i$ submits a proof that they know the opening to $c_{a_\ell}$.
-			            If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
-			            Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
-		      \end{itemize}
-	\end{itemize}
-\end{mdframed}
-% \end{minipage}
-% }
-% 	\caption{Description of the MSLE protocol, secure against static malicious adversaries}
-% 	\label{fig:protocolStatisMalMSLE}
-% \end{figure}
-
-\subsection{Static Malicious Adversary Security}
-Consider parties $P_i$ to be corrupted where $i \in C$ and $C \subseteq [n]$ such that.
-$|C| < t$.
-
-\begin{lemma}[$\registerElect$ is simulation secure]
-	Idea: if $\bot$, just do same
-	If: $j \notin C$, just do same
-	If: $j \in C$, then use the NIZK to extract out the commitment from the FHE ciphertext or bot
-	Then: S follows protocol
-\end{lemma}
-
-\begin{lemma}[$\elect$ is simulation secure]
-	Idea: if $\bot$, just do same
-	If: $j \notin C$, just do same
-	Output list from streaming sampler using TFHE sim, set to correct sequence (irrespective of advers)
-	Ask advers to generate decryption shares for each corrupted party and broadcast proof
-	For non-corrupted parties, use TFHE sim to generate decryption shares, simulate proofs
-	For corrupted parties, ask advers to generate decryption shares and proofs
-	If proofs check, use them, if not discard the decryption shares
-\end{lemma}
-
-\begin{lemma}[$\reveal$ is simulation secure]
-	% TODO: change decommitment to NZIK? Or find sim sec comm scheme?
-	% If we get that it checks out
-	If an honest party sends the req, we simulate a commitment opening according to the stored commitment (that we know)
-	If corrupted party sends req, pretending to know opening to not their commitment, we say $\bot$ (this is likely as we have the hiding property)
-	If corrupted party sends req correctly, we use the de-commitment that they send
-
-\end{lemma}
-
+% \begin{lemma}[$\reveal$ is simulation secure]
+% 	\begin{proof}
+% 		Note that the simulator can simply run $\reveal$ honestly as the simulator has knowledge of the openings to all of the commitments $c'_j$ used
+% 		and thus has an identical view to that of the real protocol.
+% 	\end{proof}
+% \end{lemma}

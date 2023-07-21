@@ -1,0 +1,124 @@
+\section{Malicious Adversary Secure Protocol}
+\newcommand{\relEncr}{\proofRel_\texttt{Encr}}
+\newcommand{\relProt}{\proofRel_\texttt{Prot}}
+Before outlining the malic
+\newcommand{\inCTList}{\texttt{Inps}}
+\newcommand{\decryptShares}{\texttt{Shares}}
+Before describing the protocol, we need to define two relationships which will be used in
+conjunction with two different NZIKs. A tuple $((\TFHEPk, \ct), \mu) \in \relEncr$ if
+$\ct = \Enc(\mu)$ under TFHE public key $\TFHEPk$.
+A tuple $((p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i) \in \relProt$ if
+% Hmmmm.... do we need verifiable encryption here? I think so...
+
+% \begin{figure}
+% 	\label{fig:protMal}
+\centering
+% \fbox{
+\begin{mdframed}
+	\textbf{The MSLE Protocol} $\pi_{\text{MSLE}}$:
+	Initialize $\nBids = 0$. Fix some $k \in \N$ to denote the number of rounds.
+	Initialize an empty set of tickets, $R$, an empty lookup of sets of parties in each election, $S$,
+	an empty lookup of reservoir sampling data structures $\resSampling$,
+	and a set of finished elections $\FinElect$. Initialize an empty lookup of election results, $E$.
+
+	\begin{itemize}
+		\item $\init$
+		      \begin{itemize}
+			      \item Set $n = 0$
+			      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
+			      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
+			            This will be the key to the PRF
+		      \end{itemize}
+
+		\item $\register$ from party $P_i$
+		      \begin{itemize}
+			      %  TODO: not within definition of TFHE, have to change up definition :((
+			      %  TODO: formalize secure channel?
+			      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$.
+			            Then, sample randomness $r$ and publish a commitment, $c_{\TFHESk_i} = \comm(\TFHESk_i, r)$. Send $\TFHESk_i$ and $r$
+			            to party $P_i$ over a secure channel.
+
+			      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
+		      \end{itemize}
+		      % \item Add $\Enc(c_i)$ to $C$.
+		      % \item $n \gets n + 1$
+
+		\item $\registerElect(\eid, \Enc(c_j), w)$ from party $P_j$ where $c_j = \comm(s_j)$ for a randomly sampled secret $s_j$.
+		      Every honest party does the following:
+		      \begin{itemize}
+			      \item If $\eid \in \FinElect$, then broadcast $\bot$ and do nothing.
+			      \item TODO: NEED TO CHECK VALID ENCRYPTION
+			      \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, broadcast $\bot$ and do nothing.
+			      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$
+			      \item If $\inCTList$ is not initialize, set it to an empty list. Then, set $\inCTList[w] \gets \Enc(c_j)$
+			      \item The CRS will be used to run a PRF to get $\Enc(e_j), \Enc(\texttt{coin}_j) =$ \\$\Enc(\texttt{PRF}(c_j, s_\texttt{TFHE}))$
+			      \item $\Enc(c_j)$ will be fed to the encrypted streaming sampler along with randomness via
+			            $\ResevInsertN{\eid}(\Enc(c_j), \Enc(e_j), \Enc(\texttt{coin}_j))$.
+		      \end{itemize}
+
+		\item $\elect(\eid)$. Each party, $P_i$ does the following:
+		      \begin{itemize}
+			      \item If $\eid \in \FinElect$, then broadcast $\bot$ and do nothing.
+			      \item The encrypted streaming sampler will output a list of $k$ messages via calling \\$\ResevOutputN{\eid}()$ $k$ times: $\Enc(c_{a_1}), \Enc(c_{a_2}), ..., \Enc(c_{a_k})$.
+			      \item TODO: NEED TO CHECK ELECTION SET SIZE
+			      \item Set $n_\bot \gets 0$
+			            %  TODO: formal with TFHE decryption shares
+			            % \item Create a proof using $\proofElem_\eid \gets \NZIKProve(\NZIKCRS, (p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i)$
+			      \item Generate decryption share $p_i$ and set $\decryptShares_\eid \gets \set{p_i}$
+			      \item Send $(\texttt{prove}, sid, (p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i)$ to $\NZIKIdeal$.
+			            % \item Send $
+			      \item Upon receiving $\bot$, set $n_\bot \gets n_\bot + 1$.
+			      \item Upon receiving $(\texttt{proof}, sid, j, (p_j, \inCTList', \Enc(s_\TFHE)'))$ from $\NZIKIdeal$,
+			            check that $\inCTList = \inCTList$ and that $\Enc(s_\TFHE) = \Enc(s_\TFHE)'$.
+			            If the equalities hold, set $\decryptShares_\eid \gets \decryptShares_\eid \bigcup \set{p_j}$.
+			      \item If $|\decryptShares_\eid| \geq t$, use the decryption shares to get $\set{c_{a_1}, ..., c_{a_k}} =$\\ $\TFHEFinDec(\decryptShares)$.
+			            And add $E_\eid = \left\{c_{a_1}, ..., c_{a_k}\right\}$ to $E$.
+			            % \item Then, at least $t$ parties will submit decryption shares, $p_i = \TFHEPartDec(\Enc(c_{a_1}), ..., \Enc(c_{a_2}))$ to get $c_{a_1}, ..., c_{a_k} = \TFHEFinDec(\{p_i\})$.
+			      \item If $n_\bot \geq (|\inCTList| - t) + 1$, then abort and output $\bot$.
+			      \item TODO: When to abort? At time out, at next election? Etc.
+		      \end{itemize}
+		      \pagebreak
+		\item $\texttt{reveal}(\eid, \ell, \Enc(c'_i))$ from $P_i$
+		      \begin{itemize}
+			      %  TODO: formal with commitments...
+			      \item $P_i$ submits a proof that they know the opening to $c_{a_\ell}$.
+			            If this proof verifies, send out $(\texttt{result}, \eid, \ell, i)$ to all parties.
+			            Otherwise, send out $(\texttt{rejected}, \eid, \ell, i)$ to all parties.
+		      \end{itemize}
+	\end{itemize}
+\end{mdframed}
+% \end{minipage}
+% }
+% 	\caption{Description of the MSLE protocol, secure against static malicious adversaries}
+% 	\label{fig:protocolStatisMalMSLE}
+% \end{figure}
+
+\subsection{Static Malicious Adversary Security}
+Consider parties $P_i$ to be corrupted where $i \in C$ and $C \subseteq [n]$ such that.
+$|C| < t$.
+
+\begin{lemma}[$\registerElect$ is simulation secure]
+	Idea: if $\bot$, just do same
+	If: $j \notin C$, just do same
+	If: $j \in C$, then use the NIZK to extract out the commitment from the FHE ciphertext or bot
+	Then: S follows protocol
+\end{lemma}
+
+\begin{lemma}[$\elect$ is simulation secure]
+	Idea: if $\bot$, just do same
+	If: $j \notin C$, just do same
+	Output list from streaming sampler using TFHE sim, set to correct sequence (irrespective of advers)
+	Ask advers to generate decryption shares for each corrupted party and broadcast proof
+	For non-corrupted parties, use TFHE sim to generate decryption shares, simulate proofs
+	For corrupted parties, ask advers to generate decryption shares and proofs
+	If proofs check, use them, if not discard the decryption shares
+\end{lemma}
+
+\begin{lemma}[$\reveal$ is simulation secure]
+	% TODO: change decommitment to NZIK? Or find sim sec comm scheme?
+	% If we get that it checks out
+	If an honest party sends the req, we simulate a commitment opening according to the stored commitment (that we know)
+	If corrupted party sends req, pretending to know opening to not their commitment, we say $\bot$ (this is likely as we have the hiding property)
+	If corrupted party sends req correctly, we use the de-commitment that they send
+
+\end{lemma}

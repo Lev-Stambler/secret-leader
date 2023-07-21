@@ -53,6 +53,7 @@ Further, we remember the definitions of evaluation correctness, semantic securit
 \end{definition}
 
 \begin{definition}[Simulation Security \cite{jain2017threshold}]
+	\label{def:simSecTFHE}
 	We say that a $\TFHE$ scheme is simulation secure if for all $\lambda$, depth bound $d$, and access structure $\mathbb{A}$
 	if there exists a stateful PPT simulator, $\mathcal{S}$, such that for any PPT adversary $\mathcal{A}$,
 	we have that the experiments $\exptReal(1^\lambda, 1^d)$ and $\exptSim(1^\lambda, 1^d)$ are statisically close
