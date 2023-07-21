@@ -1,9 +1,18 @@
 \section{Semi Honest Reservoir Sampling Based Protocol}
 \label{sec:msle_protocol}
 \newcommand{\partDecrySet}{\mathcal{P}}
-We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functionality.
+We outline a semi-honest protocol in \cref{fig:protocolMSLE} in the common reference string model for the MSLE functionality.
 
-\begin{figure}
+We define the setup, $\setup$, for the protocol as follows:
+\begin{itemize}
+	\item Set $k_{\texttt{TFHE}} \overset{\$}{\leftarrow} U_q.$
+	\item Publish CRS, $\crs = \Enc(k_{\texttt{TFHE}})$.
+	      % This will be the key to the PRF
+\end{itemize}
+
+
+
+\begin{figure}[H]
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
@@ -20,26 +29,19 @@ We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functi
 			% each party, $P_i$ has a share of $\TFHESk_i$, $\TFHESk_i$.
 			% TODO: formal
 
+			% \item $\register$ from party $P_i$
+			%       \begin{itemize}
+			% 	      %  TODO: not within definition of TFHE, have to change up definition :((
+			% 	      %  TODO: formalize secure channel?
+			% 	      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$, for $P_i$
+			% 	            and send the share over a secure channel to $P_i$.
+
+			% 	      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
+			%       \end{itemize}
+			% \item Add $\Enc(c_i)$ to $C$.
+			% \item $n \gets n + 1$
+
 			\begin{itemize}
-				\item $\setup$ 
-				      \begin{itemize}
-					      \item Set $k_{\texttt{TFHE}} \overset{\$}{\leftarrow} U_q.$ 
-								\item Publish CRS, $\crs = \Enc(k_{\texttt{TFHE}})$.
-					            % This will be the key to the PRF
-				      \end{itemize}
-
-				% \item $\register$ from party $P_i$
-				%       \begin{itemize}
-				% 	      %  TODO: not within definition of TFHE, have to change up definition :((
-				% 	      %  TODO: formalize secure channel?
-				% 	      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$, for $P_i$
-				% 	            and send the share over a secure channel to $P_i$.
-
-				% 	      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
-				%       \end{itemize}
-				% \item Add $\Enc(c_i)$ to $C$.
-				% \item $n \gets n + 1$
-
 				\item $(\registerElect, \eid)$
 				      \begin{itemize}
 					      \item Sample $s_i, r_i \randomGet \F_q$, $\ct_i \gets \Enc(c_i)$
@@ -54,7 +56,7 @@ We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functi
 					            % \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, send $\bot$ and do nothing.
 					      \item If $\resSampling_\eid$ is not stored, $\resSampling_\eid \gets \ResevInit(k)$
 					      \item Set $\Enc(e_i), \Enc(\texttt{coin}_i) \gets \TFHEEval(C_{PRF}, \crs, \ct_j)$
-					            where $C$ is the PRF circuit with polynomial stretch and $\crs$ is the key to the PRF. TODO: defn PRF with stretch
+					            where $C$ is the PRF circuit with polynomial stretch and $\crs$ is the key to the PRF. 
 					            % TODO: formally define PRF
 					      \item Call $\resSampling_\eid \gets \TFHEEval(C, \resSampling_\eid, \ct_j, \Enc(e_i), \Enc(\texttt{coin}_i))$ where
 					            $C$ is the reservoir sampling circuit for $\ResevInsert$. % TODO: is this right defn of resev insert?
@@ -66,7 +68,7 @@ We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functi
 				      \begin{itemize}
 					      % \item If $\eid \in \FinElect$, then return $\bot$ and do nothing.
 					      \item For $\ell \in [k]$, set $\ct_{\ell} \gets \TFHEEval(C_\ResevOutput, \resSampling_\eid)$
-					      \item Set $p_i \gets \TFHEPartDec(\ct_1, ..., \ct_k)$
+					      \item Set $p_i \gets \TFHEPartDec(\ct_1, ..., \ct_k, \TFHESk_i)$
 					      \item Broadcast $(\electDone, \eid, p_i)$ and call $(\electDone, \eid, p_i)$
 				      \end{itemize}
 				\item $(\electDone, \eid, p_j)$ from party $P_j$
@@ -76,7 +78,7 @@ We outline a semi-honest protocol in \cref{fig:protocolMSLE} for the MSLE functi
 					      \item If $|\partDecrySet^\eid| = n$, set $c_{a_1}, ..., c_{a_\ell} \gets \TFHEFinDec(\partDecrySet^\eid)$
 					      \item Store $\partDecrySet^\eid$.
 				      \end{itemize}
-				\item $(\reveal, \eid, \ell)$
+				\item $(\reveal, \eid, \ell)$ from party $P_i$ if $c_{a_\ell} = c_i$.
 				      \begin{itemize}
 					      \item Broadcast $(\texttt{result}, \eid, \ell, i)$
 				      \end{itemize}
@@ -109,11 +111,12 @@ We will now show that the above protocol is semi-honest simulation secure.
 		via the following three lemmas.
 
 		% TODO: ordering?
-		\begin{lemma}[$\registerElect, \registerElectAdd$ are simulation secure]
+		\begin{lemma}
+			The views of $\registerElect, \registerElectAdd$ are simulated by the simulator.
 			\begin{proof}
 				% Note that the view of the protocol is $(s_i, r_i, \ct_i)$ for $\registerElect$.
 				The simulator firsts simulates the view of the protocol for all calls to $\registerElect$ from $P_i$, $i \in C$.
-				Note that the simulator uses the same inputs, $s_i, r_i$ as in the honest protocol and thus the view is identical.
+				Note that the simulator uses the same inputs, $s_i, r_i$ as in the protocol and thus the view is identical.
 				Moreover, the view of $(\registerElectAdd, \eid, \ct'_i)$ is identical to the real protocol as $\ct'_i = \ct_i$.
 				For $j \notin C$, note that $c'_j \compInd c_j$ by the hiding property of commitments and thus
 				$\ct'_j \compInd \ct_j$.
@@ -121,30 +124,30 @@ We will now show that the above protocol is semi-honest simulation secure.
 				the view of $(\registerElectAdd, \eid, \ct'_j)$ is indistinguishable to the real protocol as
 				$\registerElectAdd$ is completely determined by prior calls to $\registerElectAdd$ and $\ct'_j$.
 
-				Let $\resSampling_{\eid, \simCMSLE}$ denote the reservoir sampling data-structure in the simulator
+				Let $\resSampling_{\eid, \simCMSLE}$ denote the reservoir sampling data-structure in the simulator.
 				We then note that, after $\alpha$, for $\alpha \in [n]$,  calls to $\registerElectAdd$, the simulator's $\resSampling_{\eid, \simCMSLE} \compInd \resSampling_\eid$
 				of the protocol as $\resSampling$ is completly determined by the calls to $\registerElectAdd$.
 			\end{proof}
 		\end{lemma}
-		\begin{lemma}[$\elect, \electDone$ are simulation secure]
+		\begin{lemma}
+			The views of $\elect, \electDone$ are simulated by the simulator.
 			\begin{proof}
-				Now note that, when $\elect$ is called by $P_i$ for $i \in C$, $\ct'_\ell \compInd \ct_\ell$ for all $\ell \in [k]$
-				as $\resSampling_\eid$ in the simulator is indistinguishable from that of the real protocol.
+				When $\elect$ is called by $P_i$ for $i \in C$, we have that for $\ct'_\ell = \TFHEEval(C_\ResevOutput, \resSampling_{\eid, \simCMSLE})$, $\ct'_\ell \compInd \ct_\ell$ for all $\ell \in [k]$.
+				This is because $\resSampling_{\eid, \simCMSLE}$ is indistinguishable from that of the real protocol.
 				We also have that, by the ideal functionality of $\elect$, $\set{a'_\ell}_{\ell \in [k]}$ is a random subset of $[n]$ with random order with size $k$.
 				Then, note that $e_i, \texttt{coin}_i = PRF(k_\TFHE, c_i)$ in the protocol is indistinguishable from a randomly sampled $e_i, \texttt{coin}_i$
 				by the semantic security of PRFs. Thus, by the correctness of $\ResevOutput(\resSampling)$, $\set{a_\ell}_{\ell \in [k]}$ is a randomly chosen ordered subset of $[n]$.
 				So then, $\set{a'_\ell}_{\ell \in [k]} \compInd \set{a_\ell}_{\ell \in [k]}$.
 				Remembering that $c'_\beta \compInd c_\beta$ for all $\beta \in [n]$, we have that $c'_{a_1}, ..., c'_{a_k} \compInd c_{a_1}, ..., c_{a_k}$.
-				So then, we have that the decryption shares, $p'_i$, for all $i \in [n]$ are simulated by the simulator such that $p'_i \compInd p_i$ in the real protocol
-				and thus all calls to $\electDone$ are indistinguishable from the real protocol as $\electDone$ is completely
+				By the simulation security of $\TFHE$, we have that the decryption shares, $p'_1,..., p'_n = \simTFHE(C_{\texttt{Ident}}, (\set{ct'_\ell}, c'_{a_1}, ..., c'_{a_k}), [n], \texttt{st})$, for all $i \in [n]$ are simulated by the simulator such that $p'_i \compInd p_i$ in the real protocol.
+				And thus, all calls to $\electDone$ are indistinguishable from the real protocol as $\electDone$ is completely
 				determined by $\set{p_i}_{i \in [n]}$.
-
 			\end{proof}
 		\end{lemma}
 		\begin{lemma}[$\reveal$ is simulation secure]
 			\begin{proof}
-			Finally, note that $\reveal$ in the simulator is identical to that of the real protocol
-			as in the semi-honest setting, only parties which have won an election will call $\reveal$.
+				Finally, note that $\reveal$ in the simulator is identical to that of the real protocol
+				as in the semi-honest setting, only parties which have won an election will call $\reveal$.
 			\end{proof}
 		\end{lemma}
 		We thus have that the view of the simulator is identical to that of the real protocol by the above three lemmas.
@@ -174,7 +177,7 @@ We will now show that the above protocol is semi-honest simulation secure.
 				%       \end{itemize}
 				\item $(\registerElect, \eid)$ for party $P_j$
 				      \begin{itemize}
-					      \item If $j \in C$ Follow the protocol's $\registerElect$ using use $s_i, r_i, c_i, \ct_j$ from the real protocol and call $(\registerElectAdd, \eid, \ct_j)$.
+					      \item If $j \in C$ Follow the protocol's $\registerElect$ using $P_j$'s $s_j, r_j, c_j, \ct_j$ from the real protocol and call $(\registerElectAdd, \eid, \ct_j)$.
 					            Set $c'_j \gets c_j$ and store $c'_j$.
 					      \item If $j \notin C$, $s'_j, r'_j \randomGet \F_q, c'_j \gets \comm(s'_j, r'_j), \ct'_j \gets \Enc(c'_j)$
 					            Store $c'_j$ and follow the protocol by calling $(\registerElectAdd, \eid, \ct'_j)$.
@@ -192,9 +195,9 @@ We will now show that the above protocol is semi-honest simulation secure.
 				      \begin{itemize}
 					      \item For $\ell \in [k]$, set $\ct'_\ell \gets \TFHEEval(C_\ResevOutput, \resSampling_\eid)$
 					      \item Let $a'_1, ..., a'_k \in [n]$ such that if $q_i = \ell$ then $a'_\ell = i$.
-					      \item Call $p'_1, ..., p'_{n} \gets \simTFHE(C_\texttt{Ident}, \set{\ct'_\ell}, c'_{a'_1}, ..., c'_{a'_\ell}, [n], \texttt{st})$
+					      \item Call $p'_1, ..., p'_{n} \gets \simTFHE(C_\texttt{Ident}, (\set{\ct'_\ell}, c'_{a'_1}, ..., c'_{a'_\ell}), [n], \texttt{st})$
 					            % Note that this sets the decryption of the output of the TFHE circuit sampling to $c'_{a'_\ell}$ for $\ell \in [k]$.
-					      % \item Store $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$
+					            % \item Store $E_\eid = \left\{c'_{a'_1}, ..., c'_{a'_k}\right\}$
 					      \item Call $(\electDone, \eid, p_j)$ from the protocol.
 				      \end{itemize}
 				      % \item $(\electDone, \eid)$ from party $P_j$
