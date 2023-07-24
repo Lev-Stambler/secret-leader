@@ -16,7 +16,7 @@ We define the setup, $\setup$, for the protocol as follows:
 	\centering
 	\fbox{
 		\begin{minipage}{1\textwidth}
-			\textbf{The MSLE Protocol}, Party $P_i$ realizing $\idealMSLE$ in the semi-honest setting:
+			\textbf{The MSLE Protocol}, Protocol, $\pi_i$, for party $P_i$ in the semi-honest setting:
 			\\
 			% Fix some $k \in \N$ to denote the number of rounds.
 			% Initialize an empty set of tickets, $R$.
@@ -44,7 +44,7 @@ We define the setup, $\setup$, for the protocol as follows:
 			\begin{itemize}
 				\item $(\registerElect, \eid)$ called by party $P_i$
 				      \begin{itemize}
-					      \item Sample $s_i, r_i \randomGet \F_q$, $\ct_i \gets \Enc(c_i)$
+					      \item Sample $s_i, r_i \randomGet \F_q$, $c_i \gets \comm(s_i, r_i)$, $\ct_i \gets \Enc(c_i)$
 					      \item Broadcast $(\registerElectAdd, \eid, \ct_i)$ to all parties and run \\$(\registerElectAdd, \eid, \ct_i)$
 				      \end{itemize}
 				\item $(\registerElectAdd, \eid, \ct_j)$ from party $P_j$ for $j \in [n]$
@@ -60,11 +60,10 @@ We define the setup, $\setup$, for the protocol as follows:
 					            % TODO: formally define PRF
 					      \item Call $\resSampling_\eid \gets \TFHEEval(C, \resSampling_\eid, \ct_j, \Enc(e_i), \Enc(\texttt{coin}_i))$ where
 					            $C$ is the reservoir sampling circuit for $\ResevInsert$. % TODO: is this right defn of resev insert?
-					            $\ResevInsertN{\eid}(\Enc(c_j), \Enc(e_i), \Enc(\texttt{coin}_i))$.
 					      \item Store $\resSampling_\eid$.
 				      \end{itemize}
 
-				\item $(\elect, \eid)$ called by user $P_i$ when  $b_\eid = n$
+				\item $(\elect, \eid)$ called by party $P_i$ when  $b_\eid = n$
 				      \begin{itemize}
 					      % \item If $\eid \in \FinElect$, then return $\bot$ and do nothing.
 					      \item For $\ell \in [k]$, set $\ct_{\ell} \gets \TFHEEval(C_\ResevOutput, \resSampling_\eid)$

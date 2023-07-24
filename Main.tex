@@ -94,6 +94,7 @@
 \newcommand{\ResevInsertN}[1]{\texttt{Resevoir}^{#1}\texttt{.Insert}}
 \newcommand{\ResevOutput}{\texttt{Resevoir.Output}}
 \newcommand{\ResevOutputN}[1]{\texttt{Resevoir}^{#1}\texttt{.Output}}
+\newcommand{\coin}{\texttt{coin}}
 
 % ZK Commands
 \newcommand{\proofRel}{Rel}
@@ -123,9 +124,11 @@
 % 	\item We will say $\Enc$ and $\Dec$ for TFHE encoding and decoding respectively
 % \end{enumerate}
 
-\input{sections/prelims.tex}
-\input{sections/MSLEIdeal.tex}
-\input{sections/TFHEmultielec.tex}
+\include{sections/prelims.tex}
+\include{sections/MSLEIdeal.tex}
+\include{sections/TFHEmultielec.tex}
+\clearpage
+\include{sections/TFHEMalSec.tex}
 \clearpage
 
 

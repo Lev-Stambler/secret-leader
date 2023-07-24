@@ -1,7 +1,7 @@
 \section{Malicious Adversary Secure Protocol}
 \newcommand{\relEncr}{\proofRel_\texttt{Encr}}
 \newcommand{\relProt}{\proofRel_\texttt{Prot}}
-Before outlining the malic
+\newcommand{\proofEncr}[1]{\pi_{#1}^{\texttt{Encr}}}
 \newcommand{\inCTList}{\texttt{Inps}}
 \newcommand{\decryptShares}{\texttt{Shares}}
 Before describing the protocol, we need to define two relationships which will be used in
@@ -22,39 +22,55 @@ A tuple $((p_i, \inCTList, \Enc(s_\TFHE)), \TFHESk_i) \in \relProt$ if
 	and a set of finished elections $\FinElect$. Initialize an empty lookup of election results, $E$.
 
 	\begin{itemize}
-		\item $\init$
-		      \begin{itemize}
-			      \item Set $n = 0$
-			      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
-			      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
-			            This will be the key to the PRF
-		      \end{itemize}
+		% \item $\init$
+		%       \begin{itemize}
+		% 	      \item Set $n = 0$
+		% 	      \item Sample a random $\TFHE$ secret key, public key pair $\TFHESk, \TFHEPk$ and publish $\TFHEPk$.
+		% 	      \item Sample some secret $s_{\texttt{TFHE}}$ and publish $\Enc(s_{\texttt{TFHE}})$.
+		% 	            This will be the key to the PRF
+		%       \end{itemize}
 
-		\item $\register$ from party $P_i$
-		      \begin{itemize}
-			      %  TODO: not within definition of TFHE, have to change up definition :((
-			      %  TODO: formalize secure channel?
-			      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$.
-			            Then, sample randomness $r$ and publish a commitment, $c_{\TFHESk_i} = \comm(\TFHESk_i, r)$. Send $\TFHESk_i$ and $r$
-			            to party $P_i$ over a secure channel.
+		% \item $\register$ from party $P_i$
+		%       \begin{itemize}
+		% 	      %  TODO: not within definition of TFHE, have to change up definition :((
+		% 	      %  TODO: formalize secure channel?
+		% 	      \item If party $P_i$ does not already have a TFHE share, create a TFHE share, $\TFHESk_i$.
+		% 	            Then, sample randomness $r$ and publish a commitment, $c_{\TFHESk_i} = \comm(\TFHESk_i, r)$. Send $\TFHESk_i$ and $r$
+		% 	            to party $P_i$ over a secure channel.
 
-			      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
-		      \end{itemize}
+		% 	      \item $R \gets R \cup \{(i, \nBids)\}$, set $\nBids \gets \nBids + 1$.
+		%       \end{itemize}
 		      % \item Add $\Enc(c_i)$ to $C$.
 		      % \item $n \gets n + 1$
 
-		\item $\registerElect(\eid, \Enc(c_j), w)$ from party $P_j$ where $c_j = \comm(s_j)$ for a randomly sampled secret $s_j$.
+		\item $(\registerElect, \eid)$ called by party $P_i$
 		      Every honest party does the following:
 		      \begin{itemize}
-			      \item If $\eid \in \FinElect$, then broadcast $\bot$ and do nothing.
-			      \item TODO: NEED TO CHECK VALID ENCRYPTION
-			      \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, broadcast $\bot$ and do nothing.
-			      \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$
-			      \item If $\inCTList$ is not initialize, set it to an empty list. Then, set $\inCTList[w] \gets \Enc(c_j)$
-			      \item The CRS will be used to run a PRF to get $\Enc(e_j), \Enc(\texttt{coin}_j) =$ \\$\Enc(\texttt{PRF}(c_j, s_\texttt{TFHE}))$
-			      \item $\Enc(c_j)$ will be fed to the encrypted streaming sampler along with randomness via
-			            $\ResevInsertN{\eid}(\Enc(c_j), \Enc(e_j), \Enc(\texttt{coin}_j))$.
+						\item Sample $s_i, r_i \randomGet \F_q, c_i \gets \comm(s_i, r_i), \ct_i \gets \Enc(c_i)$.
+						Store $c_i$ and $\ct_i$ in a lookup table, $C$.
+						\item Generate a proof $\proofEncr{i}$ to show $(c_i, \ct_i) \in \relEncr$ where $(w, x) \in \relEncr$ if $x = \Enc(w)$.
+						\item Broadcast $(\registerElectAdd, \eid, \ct_i, \proofEncr{i})$ and run \\$(\registerElectAdd, \eid, \ct_i, \proofEncr{i})$.
+			      % \item TODO: NEED TO CHECK VALID ENCRYPTION
+			      % \item If $(i, w) \in S_\eid$ or $(i, w) \notin R$, broadcast $\bot$ and do nothing.
+			      % \item Otherwise, if $\resSampling_\eid \notin \resSampling$, $\resSampling_\eid \gets \ResevInit(k)$
+			      % \item The CRS will be used to run a PRF to get $\Enc(e_j), \Enc(\texttt{coin}_j) =$ \\$\Enc(\texttt{PRF}(c_j, s_\texttt{TFHE}))$
+			      % \item $\Enc(c_j)$ will be fed to the encrypted streaming sampler along with randomness via
+			      %       $\ResevInsertN{\eid}(\Enc(c_j), \Enc(e_j), \Enc(\texttt{coin}_j))$.
 		      \end{itemize}
+		
+		\item $(\registerElectAdd, \eid, \ct_j, \proofEncr{j})$ called by party $P_j$.
+					\begin{itemize}
+			      \item If $\eid \in \FinElect$ or $\NZIKVerify(\NZIKCRS, \ct_j, \proofEncr{j}) \neq 1$, return and do nothing.
+						\item If $b_\eid$ is not stored, $b_\eid \gets 0$
+						\item $b_\eid \gets b_\eid + 1$
+						% TODO: when call?
+						\item If $\resSampling_\eid$ is not stored, $\resSampling_\eid \gets \ResevInit(k)$
+						\item $\Enc(e_i), \Enc(\coin_i) \gets \TFHEEval(C_{PRF}, \crs, \ct_j)$
+			      \item If $\inCTList$ is not stored, $\inCTList \gets [\;]$. 
+						\item $\inCTList[j] \gets \Enc(c_j)$
+					  \item Call $\resSampling_\eid \gets \TFHEEval(C, \resSampling_\eid, \ct_j, \Enc(e_i), \Enc(\texttt{coin}_i))$ where
+					        $C$ is the reservoir sampling circuit for $\ResevInsert$. % TODO: is this right defn of resev insert?
+					\end{itemize}
 
 		\item $\elect(\eid)$. Each party, $P_i$ does the following:
 		      \begin{itemize}
