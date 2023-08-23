@@ -65,12 +65,12 @@
 \newcommand{\crs}{CRS}
 \newcommand{\randomGet}{\overset{\$}{\gets}}
 
-\newcommand{\PQInit}{\texttt{PQ.Init}}
-\newcommand{\PQInsert}{\texttt{PQ.Insert}}
-\newcommand{\PQOrder}{\texttt{PQ.Order}}
-\newcommand{\PQExtract}{\texttt{PQ.ExtractFront}}
-\newcommand{\PQFront}{\texttt{PQ.Front}}
-\newcommand{\PQ}{\texttt{PQ}}
+\newcommand{\DIPQInit}{\texttt{DIPQ.Init}}
+\newcommand{\DIPQInsert}{\texttt{DIPQ.Insert}}
+\newcommand{\DIPQOrder}{\texttt{DIPQ.Order}}
+\newcommand{\DIPQExtract}{\texttt{DIPQ.ExtractFront}}
+\newcommand{\DIPQFront}{\texttt{DIPQ.Front}}
+\newcommand{\DIPQ}{\texttt{DIPQ}}
 
 \newcommand{\TFHE}{{\texttt{TFHE}}}
 \newcommand{\TFHESetup}{\texttt{TFHE.Setup}}
@@ -116,22 +116,12 @@
 
 % \begin{abstract}
 % \end{abstract}
-% \section{Some Notation}
-% \begin{enumerate}
-% 	\item We will have $\npar$ parties
-% 	\item We will have $\kld$ leaders elected
-% 	\item We will have a ``bid'' published by a user $i \in [\npar]$ be denoted as $b_i$
-% 	\item We will denote a commitment as $\comm_i$
-% 	\item We will denote some generic CRHF as $h$
-% 	\item We will say $\Enc$ and $\Dec$ for TFHE encoding and decoding respectively
-% \end{enumerate}
-
-\include{sections/prelims.tex}
+% \include{sections/prelims.tex}
 \include{sections/PQ.tex}
-\include{sections/MSLEIdeal.tex}
-\include{sections/TFHEmultielec.tex}
+% \include{sections/MSLEIdeal.tex}
+% \include{sections/TFHEmultielec.tex}
 \clearpage
-\include{sections/TFHEMalSec.tex}
+% \include{sections/TFHEMalSec.tex}
 \clearpage
 
 
