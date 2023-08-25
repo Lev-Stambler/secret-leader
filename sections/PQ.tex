@@ -52,11 +52,9 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 		\Else
 			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
 			\label{algline:HeadExtract}
-			\If{$p < p'$}
-				\State $\DIPQstash[i] = (p, v)$ and $\DIPQstash = \DIPQstash \cup \{(p', v')\}$
-			\Else
-				\State $\DIPQstash \gets \DIPQstash \bigcup \{(p, v)\}$
-			\EndIf
+			\State $I = 1$ if $p' < p$ else $0$
+			\State $\DIPQstash[i] = I \cdot (p, v) + (1 - I) \cdot (p', v')$
+			\State $\DIPQhead[i] = I \cdot (p', v') + (1 - I) \cdot (p, v)$
 		\EndIf
 		\State Call $\texttt{Order}()$ \label{algline:PQOrderIns}
 		\EndFunction
@@ -70,17 +68,6 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 			\State $i, (p_r, v_r) = \texttt{GetSmallest}(\DIPQhead)$
 			\State Call $\texttt{Order}()$
 			\State \Return $(p_r, v_r)$
-			% \State $\DIPQhead[i] = I \cdot (p, v) + (1 - I) \cdot \text{(nil element)}$
-			% \State $\DIPQstash[i] = I \cdot (p', v') + (1 - I) \cdot \text{(nil element)}$
-			% \If{$p > p'$} 
-			% 	\State $\DIPQhead[i] = \emptyset$ \Comment Remove $(p, v)$ from $\DIPQhead$
-			% 	\State $r = (p, v)$
-			% \Else
-			% 	\State $\DIPQstash[j] = \emptyset$ \Comment Remove $(p', v')$ from $\DIPQstash$
-			% 	\State $r = (p', v')$
-			% \EndIf
-			% \State Call $\texttt{Order}()$
-			% \State \Return $r$
 		\EndFunction
 		\Function{$\DIPQOrder$}{}
 			\State $\DIPQpartition_{\DIPQcounter}, \DIPQstash = \Fill(\DIPQpartition_\DIPQcounter, \DIPQstash)$
