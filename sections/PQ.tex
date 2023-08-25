@@ -2,8 +2,8 @@
 Here we introduce a data independent priority queue. We will assume that there are no items in the queue
 with equal priority. In practice, we can break ties by adding a unique identifier to each item.
 
-\newcommand{\DIPQhead}{\texttt{DIPQ.Head}}
-\newcommand{\DIPQstash}{\texttt{DIPQ.Stash}}
+\newcommand{\DIPQhead}{\texttt{Head}}
+\newcommand{\DIPQstash}{\texttt{Stash}}
 \newcommand{\DIPQcounter}{{\texttt{count}}}
 \newcommand{\DIPQpartition}{\mathcal{P}}
 \newcommand{\MergeFill}{\texttt{MergeFill}}
@@ -16,10 +16,10 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 	\caption{$\MergeFill$}
 	\begin{algorithmic}[1]
 			\State \textbf{Input:} $\DIPQhead, \DIPQpartition_\DIPQcounter$
-			\State $e_1, ..., e_\gamma \gets \texttt{sort}(\DIPQhead, \DIPQpartition_\DIPQcounter)$ where $\gamma = |\DIPQhead| + |\DIPQpartition_\DIPQcounter|$
-			\State $\DIPQhead' \gets \{e_1, ..., e_{\min\left(\sqrtn, \gamma\right)}\}$
-			\State $\DIPQpartition_\DIPQcounter' \gets \{e_{\sqrtn + 1}, ..., e_\gamma\}$
-			\State \Return $\DIPQhead', \DIPQpartition_\DIPQcounter'$
+			\State $e_1, ..., e_\gamma = \texttt{sort}(\DIPQhead, \DIPQpartition_\DIPQcounter)$ where $\gamma = |\DIPQhead| + |\DIPQpartition_\DIPQcounter|$ \Comment Via a data-independent sort
+			\State $\DIPQhead = \{e_1, ..., e_{\min\left(\sqrtn, \gamma\right)}\}$
+			\State $\DIPQpartition_\DIPQcounter = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
+			\State \Return $\DIPQhead', \DIPQpartition_\DIPQcounter$
 	\end{algorithmic}
 \end{algorithm}
 
@@ -27,50 +27,65 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 	\caption{$\Fill$}
 	\begin{algorithmic}[1]
 			\State \textbf{Input:} $\DIPQpartition_\DIPQcounter, \DIPQstash$
-			\State $e_1, ..., e_\gamma \gets \DIPQpartition_\DIPQcounter \bigcup \DIPQstash$ where $\gamma = |\DIPQpartition_\DIPQcounter| + |\DIPQstash|$
-			\State $\DIPQpartition_\DIPQcounter' \gets \{e_1, ..., e_{\min(\sqrtn, \gamma)}\}$
-			\State $\DIPQstash' \gets \{e_{\min(\gamma, \sqrtn + 1)}, ..., e_\gamma\}$
-			\State \Return $\DIPQpartition_\DIPQcounter', \DIPQstash'$
+			\State $e_1, ..., e_\gamma = \DIPQpartition_\DIPQcounter \bigcup \DIPQstash$ where $\gamma = |\DIPQpartition_\DIPQcounter| + |\DIPQstash|$
+			\State $\DIPQpartition_\DIPQcounter = \{e_1, ..., e_{\min(\sqrtn, \gamma)}\}$
+			\State $\DIPQstash = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
+			\State \Return $\DIPQpartition_\DIPQcounter', \DIPQstash$
 	\end{algorithmic}
 \end{algorithm}
 
 
 	
 \begin{algorithm}
-	\caption{Data Independent Priority Queue}
+	\caption{Data Independent Priority Queue ($\DIPQ$)}
 	\label{alg:DIQueue}
 	\begin{algorithmic}[1]
 		\Function{$\DIPQInit$}{}
 		\State $\DIPQcounter \gets 0$
-		\State $\DIPQhead \gets \texttt{PQ.Init}\sqrtn$
-		\State $\DIPQpartition_1, \cdots, \DIPQpartition_\sqrtn \gets \emptyset$
+		\State $\DIPQhead \gets []$
+		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets \emptyset$
 		\State $\DIPQstash \gets \emptyset$
 		\EndFunction
-		\Function{$\DIPQInsert$}{$p$}
+		\Function{$\DIPQInsert$}{$p, v$}
 		\If{$|\DIPQhead| < \sqrtn$}
-		\State $\DIPQhead \gets \DIPQhead\texttt{.Insert}(p)$
+			\State Append $(p, v)$ to $\DIPQhead$
 		\Else
-		\State $\DIPQhead \gets \DIPQInsert(\DIPQhead, p)$
-		\State $\DIPQhead, p' \gets \DIPQhead\texttt{.ExtractLargest}$ \label{algline:PQExtractIns}
-		\State $\DIPQstash \gets \DIPQstash \bigcup \{p'\}$
-		% \State $\DIPQcounterIns \gets \DIPQcounterIns + 1 \mod \sqrtn$
+			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
+			\label{algline:HeadExtract}
+			\If{$p < p'$}
+				\State $\DIPQstash[i] = (p, v)$ and $\DIPQstash = \DIPQstash \cup \{(p', v')\}$
+			\Else
+				\State $\DIPQstash \gets \DIPQstash \bigcup \{(p, v)\}$
+			\EndIf
 		\EndIf
 		\State Call $\texttt{Order}()$ \label{algline:PQOrderIns}
 		\EndFunction
 		\Function{$\DIPQExtract$}{}
-		\State $\DIPQhead, p \gets \DIPQhead\texttt{.Front}$
-		\State $p' \gets \texttt{GetLargest}(\DIPQstash)$
-		% \State If $p > p'$, 
-		\If{$p > p'$} Remove the front most element, $p$, from $\DIPQhead$ and set $r = p$.
-		\Else \; Remove $p'$ from the stash and set $ r = p'$
-		\EndIf
-		\State Call $\texttt{Order}()$
-		\State \Return $r$
+		 	% \State $i, (p, v) = \texttt{GetSmallest}(\DIPQhead)$ where $i$ is the index of $(p, v)$ in $\DIPQhead$
+		 	\State $j, (p, v) = \texttt{GetSmallest}(\DIPQstash)$ where $j$ is the index of $(p', v')$ in $\DIPQstash$
+		 	\State $k, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $k$ is the index of $(a, b)$ in $\DIPQhead$
+			\State $I$ = 1 if $p' < p$ else 0
+			\State $\DIPQstash[j] = (1 - I) \cdot (p', v') + I \cdot (p, v)$ \Comment Conditionally swap $(p, v)$ and $(p', v')$
+			\State $\DIPQhead[k] = I \cdot (p', v') + (1 - I) \cdot (p, v)$ \Comment Conditionally swap $(p', v')$ and $(p, v)$
+			\State $i, (p_r, v_r) = \texttt{GetSmallest}(\DIPQhead)$
+			\State Call $\texttt{Order}()$
+			\State \Return $(p_r, v_r)$
+			% \State $\DIPQhead[i] = I \cdot (p, v) + (1 - I) \cdot \text{(nil element)}$
+			% \State $\DIPQstash[i] = I \cdot (p', v') + (1 - I) \cdot \text{(nil element)}$
+			% \If{$p > p'$} 
+			% 	\State $\DIPQhead[i] = \emptyset$ \Comment Remove $(p, v)$ from $\DIPQhead$
+			% 	\State $r = (p, v)$
+			% \Else
+			% 	\State $\DIPQstash[j] = \emptyset$ \Comment Remove $(p', v')$ from $\DIPQstash$
+			% 	\State $r = (p', v')$
+			% \EndIf
+			% \State Call $\texttt{Order}()$
+			% \State \Return $r$
 		\EndFunction
 		\Function{$\DIPQOrder$}{}
-		\State $\DIPQpartition_{\DIPQcounter}, \DIPQstash \gets \Fill(\DIPQpartition_\DIPQcounter, \DIPQstash)$
-		\State $\DIPQhead, \DIPQpartition_\DIPQcounter \gets \MergeFill(\DIPQhead, \DIPQpartition_\DIPQcounter)$
-		\State $\DIPQcounter \gets \DIPQcounter + 1 \mod \sqrtn$
+			\State $\DIPQpartition_{\DIPQcounter}, \DIPQstash = \Fill(\DIPQpartition_\DIPQcounter, \DIPQstash)$
+			\State $\DIPQhead, \DIPQpartition_\DIPQcounter = \MergeFill(\DIPQhead, \DIPQpartition_\DIPQcounter)$
+			\State $\DIPQcounter \gets \DIPQcounter + 1 \mod \sqrtn$
 		\EndFunction
 	\end{algorithmic}
 \end{algorithm}
@@ -80,48 +95,64 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 \subsection{Invariants}
 \label{subsec:invariants}
 Let $i, j \in \N$ be the total number of insertions and extractions respectively. Note that if $i - j \leq \sqrtn$
-and in the prior $i + j$ operations, $i - j$ never exceeded $\sqrtn$, then the priority queue is trivially correct because all elements remain in the head which is itself a priority queue.
-Thus, we will assume that at some point in the sequence of insertions and extractions, we had $i - j > \sqrtn$.
+and in the prior $i + j$ operations, the size of $\DIPQ$ never exceeded $\sqrtn$, then the priority queue is trivially correct because all elements remain in the head which is itself a priority queue.
+Thus, we will assume that at some point in the sequence of insertions and extractions, we had that $|\DIPQ| > \sqrtn$.
 
-Before specifying our invariants, we will add some notation. Let $\good$ ($\good$ for ``good'') be the largest set of smallest elements in the head. More formally,
-$\good$ is the largest subset of $\DIPQhead$ such that $\forall e \in \DIPQhead, e \notin \good$, $a < e, \forall a \in \good$. Note that $|\good| \leq \sqrtn$.
-Further, let $g$ (the ``good'' element) be the smallest element in $\DIPQ$ such that $\forall a \in \good, g > a$ and $\forall e \in \DIPQ \setminus \good, g \leq e$.
-Notice that $g$ is not in $\DIPQhead$ because if it were, $\good$ would contain $g$.
+Before specifying our invariants, we will add some notation. Let $\good$ ($\good$ for ``good'') be the largest set of smallest priorities in the head. More formally,
+$\good$ is the largest subset of $\DIPQhead$ such that $\forall e \in \DIPQ, e \notin \good$, $a < e, \forall a \in \good$. Note that $|\good| \leq \sqrtn$.
+Further, let $g$ be the smallest priority in $\DIPQ$ which is not in the head, $\DIPQhead$.
+Note that $g \notin \good$.
+% TODO: make explicit that g \notin G
+% Confusing to call g the ``good'' element
+% g is the smallest elem in the PQ not in G
+% TODO: remove the forall e
 
 We will show that the following invariants hold:
 \begin{itemize}
-	\item The ``good'' element is not in the prior $\sqrtn - |\good|$ iterated over partitions. Formally, $g \notin \bigcup_{q \in [\DIPQcounter - \sqrtn + |\good|, \DIPQcounter)} \DIPQpartition_q$
+	\item The $g$ is not in the prior $\sqrtn - |\good|$ iterated over partitions. Formally, $g \notin \bigcup_{q \in [\DIPQcounter - \sqrtn + |\good|, \DIPQcounter)} \DIPQpartition_q$
 \end{itemize}
 
 \begin{proof}
 We proceed by joint induction on $i, j$ where $i - j \leq n$. 
-We will first prove the base case where $i - j = \sqrtn + 1$ and $i - j \leq \sqrtn$ for all prior operations.
-Note that the last operation had to be an insertion in-order for $i - j$ to increase. Thus, the head contains $\sqrtn$ elements, all of which are smaller than the element evicted by $\texttt{PQ.ExtractLargest}$ (line~\ref{algline:PQExtractIns}) in the insertion operation.
-Note that all partitions, $\DIPQpartition_\alpha$ for $\alpha \in [\sqrtn]$, were empty before this operation and thus the call to $\DIPQ.\texttt{order}$
-adds the element $p'$ evicted from the head to $\DIPQpartition_\DIPQcounter$. Thus the good element, $g$, ends up in the first partition.
-As $|\good|$ after the insert is $\sqrtn$, we have that the invariant hold trivially.\\
+We will first prove the base case where $i - j = \sqrtn + 1$ and $i - j \leq \sqrtn$
+% TODO: define i_(t), j_(t): number of insert and extract at time t
+% Say it does not come up before
+for all prior operations.
+Note that the operation has to be an insertion in-order for $i - j$ to increase. Thus, the head contains $\sqrtn$ elements, all of which are smaller than the element evicted by $\texttt{PQ.ExtractLargest}$ (line~\ref{algline:HeadExtract}) in the insertion operation.
+We thus have that $|\good| = \sqrtn$ after the insertion. 
+We can then see that the invariant holds trivially as $\DIPQcounter - \sqrtn + |\good| = \DIPQcounter - \sqrtn + \sqrtn = \DIPQcounter$ and thus
+$\bigcup_{q \in [\DIPQcounter - \sqrtn + -\sqrtn, \DIPQcounter)} \DIPQpartition_q = \emptyset$.\\
+% TODO: put here that we need to show that g is not in p_count...
+% This helps with the motivation, etc.
 
+Now, to prove the inductive case we need to show that after an operation, the new good set, $\good'$ has size
+at least $|\good| - 1$ and that $g \notin \DIPQpartition_{\DIPQcounter + 1}$. Then, as we have the inductive hypothesis
+that $g \notin \bigcup_{q \in [\DIPQcounter - \sqrtn + |\good|, \DIPQcounter)} \DIPQpartition_q$, 
+we can show that $g \notin \bigcup_{q \in [\DIPQcounter + 1 - \sqrtn + |\good| - 1, \DIPQcounter + 1)} \DIPQpartition_q$.
 
-Now for the inductive case, assume that the invariant hold for insertion count $i$ and extraction count $j$. We will show that they hold for $i + 1, j$ and $i, j + 1$.
+We will proceed by assuming that the invariant hold for insertion count $i$ and extraction count $j$. We will show that they hold for $i + 1, j$ and $i, j + 1$.
 \paragraph*{Case 1: $i + 1, j$}
 \label{proof:case1}
-Let $p$ be the inserted element. Note that if $p \leq a$ for some $a \in \good$, then the new ``good'' set, 
-$\good'$ has size $|\good'| \gets \min(\sqrtn, |\good| + 1)$. If $p > a$ for all $a \in \good$, then the new ``good'' set, $\good'$ has size $|\good|$ or  $|\good| + 1$ depending on whether $\DIPQpartition_\DIPQcounter$ contains $g$ or not.
-In either case, we have that $|\good'| \geq |\good|$. If $|\good'| = \sqrtn$, then the invariants hold trivially.
+Let $(p, v)$ be the inserted element. We will now show that the new good set, $\good'$
+has size at least $|\good|$.
+If $p < a$ for some $a \in \good$, then $p \in \good'$. As at most one element is evicted from $\good$,
+we have that $|\good'| \geq |\good| - 1 + 1$. If $p > a$ for all $a \in \good$, then the $\good'$ does not lose any elements from $\good$ and so
+$|\good'| \geq |\good|$.
 
-Otherwise, we have that either $|\DIPQpartition_\DIPQcounter|$ is $0$ or non-empty. If  $|\DIPQpartition_\DIPQcounter| = 0$, then $g \notin \DIPQpartition'_\DIPQcounter$ where $\DIPQpartition'_\DIPQcounter$ is the updated $\DIPQpartition_\DIPQcounter$ after running the insertion.
-In the case that $|\DIPQpartition_\DIPQcounter| > 0$, note that because we call $\texttt{Order}()$ at the end of insertion (line~\ref{algline:PQOrderIns}) and $|\good'| < \sqrtn$,
-$\DIPQhead$ either has an empty slot or an element $\beta$ such that $\beta > g$. Thus after calling $\DIPQOrder$, we have that $g$ is moved into $\DIPQhead'$ if $g \in \DIPQpartition_\DIPQcounter$ by the functionality of $\MergeFill$.
-We can then see that $g$ is not in $\DIPQpartition'_\DIPQcounter$ and thus the invariants hold
-that $g \notin \bigcup_{q \in [\DIPQcounter + 1 - \sqrtn + |\good|, \DIPQcounter + 1)} \DIPQpartition_q$.\\
+Now, note that if $|\good'| = \sqrtn$, then the invariants hold trivially as $\bigcup_{j \in [\DIPQcounter + 1 - \sqrtn + \sqrtn, \DIPQcounter + 1)} \DIPQpartition_j = \emptyset$.  % Can we remove the G' \geq G
+So, we assume that $|\good'| < \sqrtn$. Note that because we call $\DIPQOrder$ at the end of insertion (line~\ref{algline:PQOrderIns})
+and $\sqrtn > |\good'| \geq |\good|$, $\DIPQhead$ either had an empty slot or an element $\beta$ such that $\beta > g$ prior to insertion.
+If $p < g$, then $g' \gets p$ (where $g'$ is the updated $g$) and $(p, v)$ are moved into the head.
+Otherwise, after calling $\DIPQOrder$, we have that $g$ is moved into $\DIPQhead'$ if $g \in \DIPQpartition_\DIPQcounter$ by the functionality of $\MergeFill$.
+So, we can then see that $g' \notin \DIPQpartition'_\DIPQcounter$.
+Finally, as $g' \leq g$ and no element smaller than or equal to $g$ is in $\bigcup_{q \in [\DIPQcounter - \sqrtn + |\good|, \DIPQcounter)} \DIPQpartition_q$ by the inductive hypothesis,
+$g' \notin \bigcup_{q \in [\DIPQcounter + 1 - \sqrtn + |\good|, \DIPQcounter + 1)} \DIPQpartition_q$.\\
 
-% To show that invariant 2 holds, 
-% TODO: INVARIANT 2!
-
-\paragraph*{Case 2: $i, j + 1$} Note that on an extraction from $\DIPQhead$, $|\good|$ may decrease by 1.
+\paragraph*{Case 2: $i, j + 1$} Note that on an extraction from $\DIPQhead$, $|\good|$ may decrease by at most 1.
+We can then see that the new good set $\good'$ has size at least $|\good| - 1$.
 Again, for the case where the new good set, $\good'$, has size $\sqrtn$, the invariants hold trivially.
 So, we assume that $|\good'| < \sqrtn$.
-% For the case where $|\good| = \sqrtn$, 
+
 We must now show that $g$ is not in the updated current partition, $\DIPQpartition'_\DIPQcounter$, after $\DIPQOrder$ is called.
 We can show this because we call $\MergeFill$ on the head and the current partition, $\DIPQpartition_\DIPQcounter$. I.e.\ if $\MergeFill$ introduced element $g$
 into the head, $\good \notin \DIPQpartition'_\DIPQcounter$ and thus the invariants hold. Otherwise, if $\MergeFill$ did not introduce $g$ into the head, then $g \notin \DIPQpartition_\DIPQcounter$ and so $g \notin \DIPQpartition'_\DIPQcounter$
@@ -131,14 +162,15 @@ as elements in $\DIPQpartition_\DIPQcounter$ can only increase after $\MergeFill
 % As $\MergeFill$ guarantees that $\forall e \in \DIPQpartition'_\DIPQcounter, e > \beta$, we have that $g$ is not in $\DIPQpartition'_\DIPQcounter$ and thus the invariants hold.
 % If $|\good| < \sqrtn$, we either have that $|\DIPQhead| = \sqrtn$ or has empty slots as in \textbf{case 1}. In either case, after calling merge sort,
 % we have that forall $e \in \DIPQpartition'_\DIPQcounter$, $e > g$ as if $g  \in \DIPQpartition_\DIPQcounter$, then $g$ is moved into the head.
-By the inductive hypothesis and the above, we can see that $g \notin \bigcup_{q \in [\DIPQcounter + 1 - \sqrtn + |\good| - 1, \DIPQcounter + 1)} \DIPQpartition_q$. Thus, we then have that invariant holds.\\
+By the inductive hypothesis and the above, we can see that $g \notin \bigcup_{q \in [\DIPQcounter + 1 - \sqrtn + |\good| - 1, \DIPQcounter + 1)} \DIPQpartition_q$ via an identical line of reasoning as in \textbf{case 1}.
+Thus, we then have that invariant holds.\\
 
 
 By induction, we have that the invariant holds for all $i, j$ when the number of elements in the priority queue passed $\sqrtn$ at some point in the sequence of operations.
-% In this case, invariant 2 holds because we increase the number of ``empty'' slots in partition $\DIPQpartition_\DIPQcounter$ without increase the size of the stash.
 \end{proof}
 
 \subsection{Correctness Proof}
+\subsubsection*{$\DIPQExtract$ Correctness}
 Assuming that the invariants hold in \cref{subsec:invariants}, we will show that the algorithm is correct.
 Note that if the total number of elements in the queue never exceeded $\sqrtn$ elements, correctness holds as elements are never moved out of the head which is itself a priority queue.
 Otherwise, we will show that $\DIPQpartition_\DIPQcounter$ is always ``close enough'' to the next ``good'' element.
@@ -149,122 +181,37 @@ after $|\good| - 1$ calls.
 We can then guarantee that the smallest element in the head and stash are at least as small as $g$.
 If no insertions were called with element $e$ where $e < g$,
 then after $|\good - 1|$ operations, our new $\good$ set, $\good'$, will have size of at least $|\good| - 1 - (|\good| - 1) + 1 = 1$
-as $g$ will be moved into the head. Thus, calling $\DIPQExtract$ will return the smallest element as we always have that $|\good| > 0$.
-Otherwise, if $e$ is inserted within the $|\good| - 1$ operations, then $e$ will be in the head and be a part of the new $\good$ set, $\good'$.
+as $g$ will be moved into the head or $g$ will be in the stash. Thus, calling $\DIPQExtract$ will return the smallest element as we always have that $|\good| > 0$ or, if $|\good| = 0$, $g$, now the smallest element, is in the stash.
+Otherwise, if $e$, such that $e < g$, is inserted within the $|\good| - 1$ operations, then $e$ will be in the head and be a part of the new $\good$ set, $\good'$.
 Similarly, after $|\good| - 1$ operations, we will have that $|\good'| \geq 1$ and thus the smallest element will be returned by $\DIPQExtract$.
 
-
-\subsection{Time Complexities}
-\subsubsection{Stash Size}
-Fist, we will show that $|\DIPQstash| \leq \sqrtn$. As, $|\DIPQstash|$ and $\DIPQpartition_\alpha$, for all $\alpha \in [\sqrtn]$, does not grow if $|\DIPQhead| < \sqrtn$,
+\subsubsection*{Size of Stash}
+We will show that $|\DIPQstash| \leq \sqrtn$. As, $|\DIPQstash|$ and $\DIPQpartition_\alpha$, for all $\alpha \in [\sqrtn]$, does not grow if $|\DIPQhead| < \sqrtn$,
 we will assume that $|\DIPQhead| = \sqrtn$. 
 Note that we are guaranteed that the total number of elements in $\DIPQ$ is at most $n$ and that the capacity of each partition is $\DIPQpartition_\alpha = \sqrtn$.
 So, the total capacity of all partitions is $n$ and, we have that there is always at least $\sqrtn$ empty slots in the partitions.
 Thus, we have that no element which is added to the stash remains
 in the stash for more than $\sqrtn$ calls to $\DIPQ.\texttt{Order}()$ as each call attempts to place an element from the stash into the current partition.
-Moreover, after performing an initial $\sqrtn$ insertions, we have for each subsequent operation, 
-we are guaranteed to be able to cumulatively remove $i + j - \sqrtn$ elements from the stash where $i + j$ is the total number of operations.
-So, because we can add at most $i$ elements to the stash and remove at least $i + j - \sqrtn$ elements from the stash, we have that $|\DIPQstash| \leq \sqrtn$.
+We can also note that the stash can only grow by at most 1 element per call to $\DIPQInsert$.
+Thus, assume towards contradiction that $|\DIPQstash| > \sqrtn$. Then, we have that an element remained in the stash
+for more than $\sqrtn$ calls to $\DIPQ.\texttt{Order}()$ which is a contradiction.
+We can then see that $|\DIPQstash| \leq \sqrtn$.
+
+\subsubsection*{Data Independence}
+We will now show that the priority queue is data independent.
+We can do this by simply noting that every operation is data independent.
+
+\subsection{Time Complexities}
 
 \subsection{Complexity}
-Now, we can show that the time complexity of $\DIPQInsert$ and $\DIPQExtract$ is $O(\sqrtn \log n)$.
-We assume that we can sort a list of size $k$ in $O(k log k)$ time.
-Upon insertion into the head, calling $\DIPQhead\texttt{.Insert}$ and $\DIPQhead.\texttt{ExtractLargest}$ takes $O(\sqrtn \log \sqrtn) = O(\sqrtn \log n)$ time.
-We can also see that $\DIPQOrder$ takes $O(\sqrtn \log n)$ time as $\Fill, \MergeFill$ take $O(\sqrtn \log n)$ time.
-Thus, both $\DIPQInsert$ and $\DIPQExtract$ take $O(\sqrtn \log n)$ time.
-
-
-% \subsection{Invariants}
-% \label{subsec:invariants}
-% We will show that $\cref{alg:DIQueue}$ is indeed a data independent priority queue by proving a set
-% of invariants which directly imply the correctness of the algorithm. First, we will define the notion 
-% of a ``good'' set, $\good$, to be a subset of the elements in the head and stash such that, $\forall e \in \DIPQ, e \notin \good$,
-% $g < e, \forall g \in \good$ and $|\good| \leq \sqrtn$.
-% Also, let $\alpha$ equal $\DIPQcounter$ when the first $\texttt{ExtractFront}$ operation is called where $|\DIPQhead| > \sqrtn$.
-% Specifically, we will show the invariants that
-% \begin{enumerate}
-% 	\item $|\good| - \DIPQcounter + \alpha \mod \sqrtn \geq \sqrtn$
-% 	\item $|\DIPQstash| \leq \sqrtn$
-% 	% TODO: make this invariant **count** specific
-% 	\item $\nexists e \in \bigcup_{i \in \{\alpha, ..., \alpha + \sqrtn - |\good|\}} \DIPQpartition_i$ such that $e < \texttt{sort}(\{e\})_{1, ..., \sqrtn - |\good|}$... Sketch
-% 	\begin{enumerate}
-% 		\item AFSOC there exists such an element, then note that MergeFill was called here and thus the elements are smaller than that of the head after merge fill.
-% 		\item Note that elements in the head never increase with an insertion. At most $\sqrtn - |\good|$ extract fronts are called so that we have a specific size of elements in the head
-% 		\item After $\sqrtn$ operations from $\alpha$, you are back at $\alpha$. Note that at this point, MergeFill has been called on all elements of the memory and insertions can only decrease the head.
-% 	\end{enumerate}
-% \end{enumerate}
-
-% % TODO: lemma 1) insertions only decrease the elements in the head
-% % TODO: lemma 2) extract fronts increases one element in the head but this element is smaller than the previous partition
-% % OKAY: you insert into the head with extract front, then we have a specific size of element in the head
-% % Then, any element which is not "good" in the head can only become smaller. 
-
-% % Invariant: every sqrt n calls, we have only good elements in the head?... No
-
-
-
-% % \begin{enumerate}
-% % 	\item For $i, j \in [\DIPQcounterIns, \DIPQcounterExtr)$ $|\DIPQpartition_i| = |\DIPQpartition_j|$ and that
-% % 	for $i, j \in [\DIPQcounterExtr, \DIPQcounterIns)$ $|\DIPQpartition_i| = |\DIPQpartition_j|$.
-% % 	\item The sizes of the ``to extract'' counters are one greater than the ``to insert'' counters: i.e.\ $|\DIPQcounterExtr| = |\DIPQcounterIns + 1|$
-% % 	\item In $\DIPQhead$, we will refer to the set of ``good'' elements, $\good$, as the set of elements which are the smallest in the whole data structure:
-% % 	For $p \in \good$ we have that $\forall i, j \in [\sqrtn], p \leq \{\DIPQpartition_i\}_j$. We will refer to the set of ``bad'' elements, $\bad$, as the set of elements which are not the smallest in the whole data structure: For $p \in \bad$ we have that $\exists i, j \in [\sqrtn], p > \{\DIPQpartition_i\}_j$.
-% % 	Note that $|\good| + |\bad| = \sqrtn$. We will hold the invariant that $|\good| \geq |\DIPQcounterIns - \DIPQcounterExtr|$.
-% % \end{enumerate}
-
-% % TODO: prove me
-% % \subsection{Correctness}
-% % Assuming that invariants hold in \cref{subsec:invariants}, we will show that the algorithm is correct.
-% % Note that if the total number of inserted elements in the queue is less than $\sqrtn$, correctness holds trivially.
-% % Thus, we will assume that the total number of inserted elements is greater than $\sqrtn$.
-
-% % We will say that an element is ``good'' if it is amongst the $\sqrtn - |\good|$ smallest elements in the whole data structure.
-% % The correctness proof will proceed as follows. We will show that $\DIPQpartition_\DIPQcounterIns$ is always ``close enough'' to
-% % a set of ``good'' elements. Formally, we will show that 
-% % \begin{equation}
-% % 	\label{eq:condclose}
-% % 	\exists e \in \bigcup_{j \in [\DIPQcounterExtr, \DIPQcounterExtr + |G|]} \DIPQpartition_j
-% % \end{equation}
-% % % TODO: is the amongst correct?
-% % such that for $e$ is ``good'' and 
-% % \begin{equation}
-% % 	\label{eq:condfar}
-% % 	\forall j \notin [\DIPQcounterExtr, \DIPQcounterExtr + |G|], \nexists e \in \DIPQpartition_j
-% % \end{equation}
-% % such that $e$ is ``good''.
-
-
-
-% % Let $i \geq \sqrtn$ be the total number of insertions and $j \geq 0$ be the total number of extractions.
-% % Note that $\DIPQhead$ is always full with $\sqrtn$ elements.
-% % We will proceed by joint induction on the number of insertions and extractions.
-
-% % For the base case where $\sqrtn = i$ and $j = 0$. We have that $|\good| = \sqrtn$ and thus \cref{eq:condclose} holds trivially.
-
-% % Now we proceed by cases. Assume that \cref{eq:condclose} hold for $i, j$ and we will show that it holds for $i + 1, j$ and $i, j + 1$.
-
-% % \paragraph{Case 1: $i + 1, j$}
-% % Let $p$ be the inserted element.
-% % Note that $|\bad|, |\good|$ does not decrease as if $p < p_g$ for $p_g \in \good$ then $p$ is inserted into $\DIPQhead$
-% % and $\good$ either increases in size.
-
-% % \paragraph{Case 2: $i, j + 1$}
-% % Note that on an extraction from $\DIPQhead$, $|\good|$ decreases by 1.
-% % Let $\alpha$ be the number of ``good'' elements in $\DIPQpartition_\DIPQcounterExtr$.
-% % If $\alpha = 0$, then, we have that there is a ``good'' element in $\DIPQpartition_{\DIPQcounterExtr + 1}, ..., \DIPQpartition_{\DIPQcounterExtr + |\good|}$.
-% % Thus, the invariant holds.
-% % If $\alpha > 0$, then let $\good'$ be the new good set. We have that $|\good'| \gets |\good| - 1 + \alpha$.
-
-% % Then, after the $\MergeFill$ operation, we have that
-
-% % % and $|\bad|$ increases by 1 as we count the empty slot in the head as an element of $\bad$. 
-% % % By the inductive hypothesis, we have that there exists $|\bad|$ elements that are ``$|\good|$-close'' to $\DIPQpartition_\DIPQcounterExtr$.
-% % Let $\alpha$ be the number of ``good'' elements in $\DIPQpartition_\DIPQcounterExtr$. Then, after the $\MergeFill$ operation, we have that
-% % $|\good'| \gets |\good| + \alpha$ and that we have at least $|\bad| - \alpha$ elements that are ``$|\good|$-close'' to $\DIPQpartition_\DIPQcounterExtr$.
-% % In the case that $\alpha \geq |\bad| + 1$, then the new size of $\good$ is $\sqrtn$ and thus we have that for all $q \in [\sqrtn]$, $\DIPQpartition_q$ is ``$|\good|$-close'' to $\DIPQpartition_\DIPQcounterExtr$.
-
-% % Otherwise, we have that the new bad set, $\bad'$, has size $|\bad'| \gets |\bad| + 1 - \alpha$
-% % and $|\good'| \gets |\good| - 1 + \alpha$. Also, we update $\DIPQcounterExtr$ to $\DIPQcounterExtr' \gets \DIPQcounterExtr + 1$.
-% % Note that if we have at least $|\bad| + 1$ ``good'' elements $|\good|$-close to $\DIPQpartition_\DIPQcounterExtr$, then we are done.
-% % Now, we need to show that we have at least 1 ``good'' element in $\DIPQpartition_{\DIPQcounterExtr + |\good| + 1}, \cdots \DIPQpartition_{\DIPQcounterExtr + |\good| + \alpha + 1}$.
-
+% Asymptotic result, AKS sort. In practice, Bitonic (batcher) sort
+% TODO: be careful
+% TODO: say f(n) sort time
+% TODO: careful that Fill and MergeFill and data independent
+% TODO: say why Fill, MergeFill (Order), is data indep. Add subsection
+Assume that we have a data independent sorting algorithm which takes $O(f(n))$ time where $f(n)$ is some function of $n$.
+Now, we can show that the time complexity of $\DIPQInsert$ and $\DIPQExtract$ is $O(\sqrtn + f(n))$.
+Note that $\DIPQOrder$ makes a call to $\MergeFill$ which does a sort and that the rest of the operations take at most $O(\sqrtn)$ time.
+So, $\DIPQOrder$ takes $O(\sqrtn + f(n))$ time.
+We can also see that in $\DIPQInsert$ and $\DIPQExtract$ all non-$\DIPQOrder$ operations take at most $O(\sqrtn)$ time.
+So, $\DIPQInsert$ and $\DIPQExtract$ take $O(\sqrtn + f(n))$ time.
