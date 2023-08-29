@@ -1,0 +1,75 @@
+\newcommand{\DeQ}{\texttt{Dequeue}}
+\newcommand{\DIPQLow}{\DIPQ_{\texttt{low}}}
+\newcommand{\DIPQHigh}{\DIPQ_{\texttt{high}}}
+\newcommand{\DeQCouner}{\texttt{counter}}
+\newcommand{\DeQSize}{\texttt{size}}
+\newcommand{\DeQExtractFront}{\texttt{ExtractFront}}
+\newcommand{\DeQExtractBack}{\texttt{ExtractBack}}
+
+\section{Building a Dequeue}
+Given black box access to a data independent (or oblivious) priority queue,
+we can build a data independent (resp. oblivious) double sided queue.
+With a double sided queue, we can build a stack and heap as well.
+
+\subsection{Data Independent (Oblivious) Dequeue}
+Assume that we have a data independent (resp. oblivious) priority queue, $\DIPQ$.
+Then, in \cref{alg:DIQueue}, we show how to build a data independent (resp. oblivious) double sided queue, $\DeQ$.
+
+\begin{algorithm}
+	\caption{Data Independent Dequeue ($\DeQ$)}
+	\label{alg:DEQueue}
+	\begin{algorithmic}[1]
+		\Function{$\DIPQInit$}{}
+		\State $\DIPQLow \gets \DIPQ.\DIPQInit()$ where $\DIPQLow$ is a min priority queue
+		\State $\DIPQHigh \gets \DIPQ.\DIPQInit()$ where $\DIPQHigh$ is a max priority queue
+		\State $\DeQCouner \gets 0$
+		\State $\DeQSize \gets 0$
+		\EndFunction
+		\Function{$\texttt{Insert}$}{$v$}
+		 	\State $\DIPQHigh.\DIPQInsert(\DeQCouner, v)$
+		 	\State $\DIPQLow.\DIPQInsert(\DeQCouner, v)$
+			\State $\DeQCouner = \DeQCouner + 1$
+			\State $\DeQSize = \DeQSize + 1$
+		\EndFunction
+		\Function{$\DeQExtractBack$}{}
+			\If {$\DeQSize = 0$}
+				\State \Return $\bot$
+			\EndIf
+		 	\State $(p, v) \gets \DIPQHigh.\DIPQExtract()$
+			\label{alg:DEQueue:ExtractBack}
+			\State $\DeQCouner = \DeQCouner - 1$
+			\State $\DeQSize = \DeQSize - 1$
+			\State \Return $v$
+		\EndFunction
+		\Function{$\DeQExtractFront$}{}
+			\If {$\DeQSize = 0$}
+				\State \Return $\bot$
+			\EndIf
+		 	\State $(p', v') \gets \DIPQHigh.\DIPQLow()$
+			\State $\DeQSize = \DeQSize - 1$
+			\label{alg:DEQueue:ExtractFront}
+			\State \Return $v'$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Correctness}
+To such correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element in the queue.
+First, assume that we have $k$ element in $\DeQ$. 
+Clearly, $\DeQExtractBack$ returns the element with the largest priority, which is always the last inserted element.
+$\DeQExtractFront$ will also return the element with the smallest priority, which is the first inserted element.
+We now just need to show that the $\DeQExtractFront$ and $\DeQExtractBack$
+never return an element which was extracted before.
+Let $p'$ be the insert index of an element extracted by $\DeQExtractFront$ (line~\ref{alg:DEQueue:ExtractFront}) and $p$ be the insert index of an element extracted by $\DeQExtractBack$ (line~\ref{alg:DEQueue:ExtractBack}).
+Note that if we ever have that $p' \geq p$, then we do not have correctness
+as $\DeQExtractFront$ is returning an element with count greater than what $\DeQExtractBack$ returned
+and thus the element with insertion count $p'$ has already been evicted by $\DeQExtractBack$.
+If we always have that $p' < p$, then we have correctness as $\DeQExtractFront$ is never evicting an element
+which $\DeQExtractBack$ has already evicted.
+
+Now, we will show that we always have $p' < p$.
+Let $h$ be the highest priority element in $\DIPQHigh$ and $\ell$ by the lowest priority element in $\DIPQLow$.
+Now, note that $h - \ell = |\DeQ|$ as $h$ is equal to count as $\DeQExtractBack$ always decreases the counter by one and
+$\ell$ is equal to the number of calls to $\DeQExtractFront$ (which decreases the size of the queue by 1).
+Assume towards contradiction that $p' \geq p$, we then have that $\DeQSize = h - \ell = p' - p \leq 0$.
+This is a contradiction as if $\DeQSize \leq 0$, then $\DeQExtractFront$ and $\DeQExtractBack$ would have returned $\bot$.
