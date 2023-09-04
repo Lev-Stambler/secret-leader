@@ -44,8 +44,10 @@ Then, in \cref{alg:DIQueue}, we show how to build a data independent (resp. obli
 		\Function{$\DeQExtractFront$}{}
 			\If {$\DeQSize = 0$}
 				\State \Return $\bot$
+				% TODO: have a dummy operation
+				% 
 			\EndIf
-		 	\State $(p', v') \gets \DIPQHigh.\DIPQLow()$
+		 	\State $(p', v') \gets \DIPQLow.\DIPQExtract()$
 			\State $\DeQSize = \DeQSize - 1$
 			\label{alg:DEQueue:ExtractFront}
 			\State \Return $v'$
@@ -54,7 +56,7 @@ Then, in \cref{alg:DIQueue}, we show how to build a data independent (resp. obli
 \end{algorithm}
 
 \subsection{Correctness}
-To such correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element in the queue.
+To show correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element in the queue.
 First, assume that we have $k$ element in $\DeQ$. 
 Clearly, $\DeQExtractBack$ returns the element with the largest priority, which is always the last inserted element.
 $\DeQExtractFront$ will also return the element with the smallest priority, which is the first inserted element.
@@ -69,7 +71,7 @@ which $\DeQExtractBack$ has already evicted.
 
 Now, we will show that we always have $p' < p$.
 Let $h$ be the highest priority element in $\DIPQHigh$ and $\ell$ by the lowest priority element in $\DIPQLow$.
-Now, note that $h - \ell = |\DeQ|$ as $h$ is equal to count as $\DeQExtractBack$ always decreases the counter by one and
+Now, note that $h - \ell = |\DeQ|$ as $h$ is equal to $\DeQCouner$ as $\DeQExtractBack$ always decreases the counter by one and
 $\ell$ is equal to the number of calls to $\DeQExtractFront$ (which decreases the size of the queue by 1).
 Assume towards contradiction that $p' \geq p$, we then have that $\DeQSize = h - \ell = p' - p \leq 0$.
 This is a contradiction as if $\DeQSize \leq 0$, then $\DeQExtractFront$ and $\DeQExtractBack$ would have returned $\bot$.

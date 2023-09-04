@@ -1,16 +1,16 @@
-\section{Data Independent Priority Queue}
-Here we introduce a data independent priority queue. We will assume that there are no items in the queue
-with equal priority. In practice, we can break ties by adding a unique identifier to each item.
+\section{Adopting to an Oblivious Priority Queue}
+Here we will adopt the above data structure into an oblivious one.
 
-\newcommand{\DIPQhead}{\texttt{Head}}
-\newcommand{\DIPQstash}{\texttt{Stash}}
-\newcommand{\DIPQcounter}{{\texttt{count}}}
-\newcommand{\DIPQpartition}{\mathcal{P}}
-\newcommand{\MergeFill}{\texttt{MergeFill}}
-\newcommand{\Fill}{\texttt{Fill}}
-\newcommand{\sqrtn}{{\sqrt{n}}}
-\newcommand{\good}{\mathcal{G}}
-\newcommand{\bad}{\mathcal{B}}
+\newcommand{\DIPQOperation}{\texttt{Operation}}
+% \newcommand{\DIPQhead}{\texttt{Head}}
+% \newcommand{\DIPQstash}{\texttt{Stash}}
+% \newcommand{\DIPQcounter}{{\texttt{count}}}
+% \newcommand{\DIPQpartition}{\mathcal{P}}
+% \newcommand{\MergeFill}{\texttt{MergeFill}}
+% \newcommand{\Fill}{\texttt{Fill}}
+% \newcommand{\sqrtn}{{\sqrt{n}}}
+% \newcommand{\good}{\mathcal{G}}
+% \newcommand{\bad}{\mathcal{B}}
 
 \begin{algorithm}
 	\caption{$\MergeFill$}
@@ -38,35 +38,22 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 	
 \begin{algorithm}
 	\caption{Data Independent Priority Queue ($\DIPQ$)}
-	\label{alg:DIQueue}
+	\label{alg:ObvQueue}
 	\begin{algorithmic}[1]
 		\Function{$\DIPQInit$}{}
 		\State $\DIPQcounter \gets 0$
-		\State $\DIPQhead \gets []$
-		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets \emptyset$
-		\State $\DIPQstash \gets \emptyset$
+		\State $\DIPQhead \gets [\inf, ..., \inf]$ where $|\DIPQhead| = \sqrtn$
+		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets [\inf, ..., \inf]$ where $|\DIPQpartition_\alpha| = \sqrtn$
+		\State $\DIPQstash \gets [\inf, ..., \inf]$ where $|\DIPQstash| = \sqrtn$
 		\EndFunction
-		\Function{$\DIPQInsert$}{$p, v$}
-		\If{$|\DIPQhead| < \sqrtn$}
+		\Function{$\DIPQOperation$}{$p, v, op$}
 			\State Append $(p, v)$ to $\DIPQhead$
-		\Else
 			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
-			\label{algline:HeadExtract}
 			\State $I = 1$ if $p' < p$ else $0$
 			\State $\DIPQstash[i] = I \cdot (p, v) + (1 - I) \cdot (p', v')$
 			\State $\DIPQhead[i] = I \cdot (p', v') + (1 - I) \cdot (p, v)$
-		\EndIf
-		\State Call $\texttt{Order}()$ \label{algline:PQOrderIns}
-		\EndFunction
-		\Function{$\DIPQExtract$}{}
-		 	% \State $i, (p, v) = \texttt{GetSmallest}(\DIPQhead)$ where $i$ is the index of $(p, v)$ in $\DIPQhead$
-		 	\State $j, (p, v) = \texttt{GetSmallest}(\DIPQstash)$ where $j$ is the index of $(p', v')$ in $\DIPQstash$
-		 	\State $k, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $k$ is the index of $(a, b)$ in $\DIPQhead$
-			\State $I$ = 1 if $p' < p$ else 0
-			\State $\DIPQstash[j] = (1 - I) \cdot (p', v') + I \cdot (p, v)$ \Comment Conditionally swap $(p, v)$ and $(p', v')$
-			\State $\DIPQhead[k] = I \cdot (p', v') + (1 - I) \cdot (p, v)$ \Comment Conditionally swap $(p', v')$ and $(p, v)$
 			\State $i, (p_r, v_r) = \texttt{GetSmallest}(\DIPQhead)$
-			\State Call $\texttt{Order}()$
+			\State Call $\texttt{Order}()$ \label{algline:ObvPQOrderOp}
 			\State \Return $(p_r, v_r)$
 		\EndFunction
 		\Function{$\DIPQOrder$}{}
