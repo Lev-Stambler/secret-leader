@@ -8,6 +8,7 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 \newcommand{\DIPQpartition}{\mathcal{P}}
 \newcommand{\MergeFill}{\texttt{MergeFill}}
 \newcommand{\Fill}{\texttt{Fill}}
+\newcommand{\ExtractSmallest}{\texttt{ExtractSmallest}}
 \newcommand{\sqrtn}{{\sqrt{n}}}
 \newcommand{\good}{\mathcal{G}}
 \newcommand{\bad}{\mathcal{B}}
@@ -34,6 +35,15 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 	\end{algorithmic}
 \end{algorithm}
 
+\begin{algorithm}
+	\caption{$\ExtractSmallest$}
+	\begin{algorithmic}[1]
+			\State \textbf{Input:} List $\ell$ of size $k$
+			\State $i = \texttt{argmin}(\ell)$
+			\State $\ell = \ell_1, ..., \ell_{i - 1}, \ell_{i + 1}, ... \ell_k$
+			\State \Return $\ell, \ell[i]$
+	\end{algorithmic}
+\end{algorithm}
 
 	
 \begin{algorithm}
@@ -53,7 +63,7 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
 			\label{algline:HeadExtract}
 			\State $I = 1$ if $p' < p$ else $0$
-			\State $\DIPQstash[i] = I \cdot (p, v) + (1 - I) \cdot (p', v')$
+			\State $\DIPQstash = \DIPQstash :: \left(I \cdot (p, v) + (1 - I) \cdot (p', v')\right)$
 			\State $\DIPQhead[i] = I \cdot (p', v') + (1 - I) \cdot (p, v)$
 		\EndIf
 		\State Call $\texttt{Order}()$ \label{algline:PQOrderIns}
@@ -65,7 +75,7 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 			\State $I$ = 1 if $p' < p$ else 0
 			\State $\DIPQstash[j] = (1 - I) \cdot (p', v') + I \cdot (p, v)$ \Comment Conditionally swap $(p, v)$ and $(p', v')$
 			\State $\DIPQhead[k] = I \cdot (p', v') + (1 - I) \cdot (p, v)$ \Comment Conditionally swap $(p', v')$ and $(p, v)$
-			\State $i, (p_r, v_r) = \texttt{GetSmallest}(\DIPQhead)$
+			\State $\DIPQhead, (p_r, v_r) = \ExtractSmallest(\DIPQhead)$
 			\State Call $\texttt{Order}()$
 			\State \Return $(p_r, v_r)$
 		\EndFunction
