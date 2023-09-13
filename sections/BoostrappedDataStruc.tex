@@ -1,6 +1,7 @@
 \newcommand{\DeQ}{\texttt{Dequeue}}
-\newcommand{\DIPQLow}{\DIPQ_{\texttt{low}}}
-\newcommand{\DIPQHigh}{\DIPQ_{\texttt{high}}}
+\newcommand{\DeQAccess}{\texttt{Access}}
+\newcommand{\DIPQFr}{\DIPQ_{\texttt{front}}}
+\newcommand{\DIPQBack}{\DIPQ_{\texttt{back}}}
 \newcommand{\DeQCouner}{\texttt{counter}}
 \newcommand{\DeQSize}{\texttt{size}}
 \newcommand{\DeQExtractFront}{\texttt{ExtractFront}}
@@ -20,58 +21,46 @@ Then, in \cref{alg:DIQueue}, we show how to build a data independent (resp. obli
 	\label{alg:DEQueue}
 	\begin{algorithmic}[1]
 		\Function{$\DIPQInit$}{}
-		\State $\DIPQLow \gets \DIPQ.\DIPQInit()$ where $\DIPQLow$ is a min priority queue
-		\State $\DIPQHigh \gets \DIPQ.\DIPQInit()$ where $\DIPQHigh$ is a max priority queue
+		\State $\DIPQFr \gets \DIPQ.\DIPQInit()$ where $\DIPQFr$ is a min priority queue
+		\State $\DIPQBack \gets \DIPQ.\DIPQInit()$ where $\DIPQBack$ is a max priority queue
 		\State $\DeQCouner \gets 0$
 		\State $\DeQSize \gets 0$
 		\EndFunction
-		\Function{$\texttt{Insert}$}{$v$}
-		 	\State $\DIPQHigh.\DIPQInsert(\DeQCouner, v)$
-		 	\State $\DIPQLow.\DIPQInsert(\DeQCouner, v)$
-			\State $\DeQCouner = \DeQCouner + 1$
-			\State $\DeQSize = \DeQSize + 1$
-		\EndFunction
-		\Function{$\DeQExtractBack$}{}
-			\If {$\DeQSize = 0$}
-				\State \Return $\bot$
-			\EndIf
-		 	\State $(p, v) \gets \DIPQHigh.\DIPQExtract()$
-			\label{alg:DEQueue:ExtractBack}
-			\State $\DeQCouner = \DeQCouner - 1$
-			\State $\DeQSize = \DeQSize - 1$
-			\State \Return $v$
-		\EndFunction
-		\Function{$\DeQExtractFront$}{}
-			\If {$\DeQSize = 0$}
-				\State \Return $\bot$
-				% TODO: have a dummy operation
-				% 
-			\EndIf
-		 	\State $(p', v') \gets \DIPQLow.\DIPQExtract()$
-			\State $\DeQSize = \DeQSize - 1$
-			\label{alg:DEQueue:ExtractFront}
-			\State \Return $v'$
+		\Function{$\DeQAccess$}{$v, op \in OPS$} \Comment where $OPS = \{\texttt{ins}, \texttt{extrBack}, \texttt{extrFront}\}$
+			\State $p_{\texttt{front}} = \DeQCouner$ if $op = \texttt{ins}$ else $\inf$ 
+			\State $p_{\texttt{back}} = \DeQCouner$ if $op = \texttt{ins}$ else $-\inf$
+		 	\State $\DIPQBack.\DIPQInsert(p_{\texttt{back}}, v)$ \Comment If $op \neq \texttt{ins}$, then this insert will be ignored
+		 	\State $\DIPQFr.\DIPQInsert(p_{\texttt{front}}, v)$ \Comment If $op \neq \texttt{ins}$, then this insert will be ignored
+
+			\State $p_{\texttt{back}}' = -\inf$ if $op = \texttt{\texttt{extrBack}}$ and $\inf$ otherwise
+			\State $p_{\texttt{front}}' = \inf$ if $op = \texttt{\texttt{extrFront}}$ and $-\inf$ otherwise
+		 	\State $\DIPQBack.\DIPQInsert(p_{\texttt{back}}', \bot)$ \Comment dummy element which will be removed if $op \neq \texttt{extrBack}$
+		 	\State $\DIPQFr.\DIPQInsert(p_{\texttt{front}}', \bot)$ \Comment dummy element which will be removed if $op \neq \texttt{extrFront}$
+
+			\State $\DIPQcounter = \DIPQcounter + 1$ if $op = \texttt{ins}$ and $\DIPQcounter$ otherwise
+		 	\State $(p, v)_\texttt{back} \gets \DIPQBack.\texttt{ExtractBack}()$
+		 	\State $(p, v)_\texttt{front} \gets \DIPQFr.\DIPQExtract()$
+
+			\State \Return $(p, v)_\texttt{back}, (p, v)_\texttt{front}$
 		\EndFunction
 	\end{algorithmic}
 \end{algorithm}
 
 \subsection{Correctness}
-To show correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element in the queue.
-First, assume that we have $k$ element in $\DeQ$. 
-Clearly, $\DeQExtractBack$ returns the element with the largest priority, which is always the last inserted element.
-$\DeQExtractFront$ will also return the element with the smallest priority, which is the first inserted element.
-We now just need to show that the $\DeQExtractFront$ and $\DeQExtractBack$
-never return an element which was extracted before.
-Let $p'$ be the insert index of an element extracted by $\DeQExtractFront$ (line~\ref{alg:DEQueue:ExtractFront}) and $p$ be the insert index of an element extracted by $\DeQExtractBack$ (line~\ref{alg:DEQueue:ExtractBack}).
-Note that if we ever have that $p' \geq p$, then we do not have correctness
-as $\DeQExtractFront$ is returning an element with count greater than what $\DeQExtractBack$ returned
-and thus the element with insertion count $p'$ has already been evicted by $\DeQExtractBack$.
-If we always have that $p' < p$, then we have correctness as $\DeQExtractFront$ is never evicting an element
-which $\DeQExtractBack$ has already evicted.
+We assume that the number of insertions is always greater than or equal to the number of extractions.
+Thus $\DIPQFr$ and $\DIPQBack$ will never output the same element.
 
-Now, we will show that we always have $p' < p$.
-Let $h$ be the highest priority element in $\DIPQHigh$ and $\ell$ by the lowest priority element in $\DIPQLow$.
-Now, note that $h - \ell = |\DeQ|$ as $h$ is equal to $\DeQCouner$ as $\DeQExtractBack$ always decreases the counter by one and
-$\ell$ is equal to the number of calls to $\DeQExtractFront$ (which decreases the size of the queue by 1).
-Assume towards contradiction that $p' \geq p$, we then have that $\DeQSize = h - \ell = p' - p \leq 0$.
-This is a contradiction as if $\DeQSize \leq 0$, then $\DeQExtractFront$ and $\DeQExtractBack$ would have returned $\bot$.
+To show correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element inserted into the queue.
+We can do this by simply noting that every inserted item is associated with a unique counter value which increases with every operation.
+Thus, extracting from the front of $\DIPQFr$ will always return the oldest element and extracting from the back of $\DIPQBack$ will always return the newest element.
+We can also see that when we have a non-insert operation, we are either calling a front or back extract operation.
+If we are calling a front extraction, then we insert a dummy element into the back queue which will be removed by the extract operation.
+If we are calling a back extraction, then we insert a dummy element into the front queue which will be removed by the extract operation.
+
+\subsection{Obliviousness}
+Assuming that $\DIPQ$ is oblivious, we can see that $\DeQ$ is also oblivious as the memory access of $\DeQAccess$ is deterministic.
+
+
+% TODO: what about synchronization between the two queues?
+
+% we insert a dummy element into the queue which will be removed by the extract operation.

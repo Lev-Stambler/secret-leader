@@ -1,40 +1,9 @@
 \section{Adopting to an Oblivious Priority Queue}
 Here we will adopt the above data structure into an oblivious one.
 
-\newcommand{\DIPQOperation}{\texttt{Operation}}
-% \newcommand{\DIPQhead}{\texttt{Head}}
-% \newcommand{\DIPQstash}{\texttt{Stash}}
-% \newcommand{\DIPQcounter}{{\texttt{count}}}
-% \newcommand{\DIPQpartition}{\mathcal{P}}
-% \newcommand{\MergeFill}{\texttt{MergeFill}}
-% \newcommand{\Fill}{\texttt{Fill}}
-% \newcommand{\sqrtn}{{\sqrt{n}}}
-% \newcommand{\good}{\mathcal{G}}
-% \newcommand{\bad}{\mathcal{B}}
-
-\begin{algorithm}
-	\caption{$\MergeFill$}
-	\begin{algorithmic}[1]
-			\State \textbf{Input:} $\DIPQhead, \DIPQpartition_\DIPQcounter$
-			\State $e_1, ..., e_\gamma = \texttt{sort}(\DIPQhead, \DIPQpartition_\DIPQcounter)$ where $\gamma = |\DIPQhead| + |\DIPQpartition_\DIPQcounter|$ \Comment Via an oblivious sort
-			\State $\DIPQhead = \{e_1, ..., e_{\min\left(\sqrtn, \gamma\right)}\}$
-			\State $\DIPQpartition_\DIPQcounter = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
-			\State \Return $\DIPQhead', \DIPQpartition_\DIPQcounter$
-	\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}
-	\caption{$\Fill$}
-	\begin{algorithmic}[1]
-			\State \textbf{Input:} $\DIPQpartition_\DIPQcounter, \DIPQstash$
-			\State $e_1, ..., e_\gamma = \DIPQpartition_\DIPQcounter \bigcup \DIPQstash$ where $\gamma = |\DIPQpartition_\DIPQcounter| + |\DIPQstash|$
-			\State $\DIPQpartition_\DIPQcounter = \{e_1, ..., e_{\min(\sqrtn, \gamma)}\}$
-			\State $\DIPQstash = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
-			\State \Return $\DIPQpartition_\DIPQcounter', \DIPQstash$
-	\end{algorithmic}
-\end{algorithm}
-
-
+\newcommand{\DIPQOperation}{\texttt{Access}}
+\newcommand{\experiment}{\textbf{Exp}}
+\newcommand{\Append}{\texttt{Append}}
 	
 \begin{algorithm}
 	\caption{Oblivious Priority Queue ($\DIPQ$)}
@@ -42,17 +11,22 @@ Here we will adopt the above data structure into an oblivious one.
 	\begin{algorithmic}[1]
 		\Function{$\DIPQInit$}{}
 		\State $\DIPQcounter \gets 0$
-		\State $\DIPQhead \gets [\inf, ..., \inf]$ where $|\DIPQhead| = \sqrtn$
-		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets [\inf, ..., \inf]$ where $|\DIPQpartition_\alpha| = \sqrtn$
-		\State $\DIPQstash \gets [\inf, ..., \inf]$ where $|\DIPQstash| = \sqrtn$
+		% TODO: more formal with $$$$$
+		\State $\DIPQhead \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQhead| = \sqrtn$
+		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQpartition_\alpha| = \sqrtn$
+		\State $\DIPQstash \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQstash| = \sqrtn$
 		\EndFunction
 		\Function{$\DIPQOperation$}{$p, v, op$}
 			\State Append $(p, v)$ to $\DIPQhead$
 			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
-			\State $I = 1$ if $p' < p$ else $0$
-			\State $\DIPQstash = \DIPQstash :: I \cdot (p, v) + (1 - I) \cdot (p', v')$
-			\State $\DIPQhead[i] = I \cdot (p', v') + (1 - I) \cdot (p, v)$
-			\State $i, (p_r, v_r) = \texttt{GetSmallest}(\DIPQhead)$
+			\State $\texttt{FlagPriority} = 1$ if $p' < p$ else $0$
+			\State $\DIPQstash =  \Append(\DIPQstash, \texttt{FlagPriority} \cdot (p, v) + (1 - \texttt{FlagPriority}) \cdot (p', v')$
+			\State $\DIPQhead[i] = \texttt{FlagPriority} \cdot (p', v') + (1 - \texttt{FlagPriority}) \cdot (p, v)$
+			\State $\texttt{FlagIns} = 1$ if $op = \texttt{Insert}$, otherwise $0$ when $op = \texttt{ExtractFront}$
+			\State $\DIPQhead_{ins}, (p_r, v_r)_{ins} =  \DIPQhead, (0, 0)$
+			\State $\DIPQhead_{extr}, (p_r, v_r)_{extr} =  \ExtractSmallest(\DIPQhead)$
+			\State $\DIPQhead = \texttt{FlagIns} \cdot \DIPQhead_{ins} + (1 - \texttt{FlagIns}) \cdot \Append(\DIPQhead_{extr}, \inf)$
+			\State $(p_r, v_r) = \texttt{FlagIns} \cdot (p_r, v_r)_{ins} + (1 - \texttt{FlagIns}) \cdot (p_r, v_r)_{extr}$
 			\State Call $\texttt{Order}()$ \label{algline:ObvPQOrderOp}
 			\State \Return $(p_r, v_r)$
 		\EndFunction
@@ -69,11 +43,27 @@ Here we will adopt the above data structure into an oblivious one.
 \subsection{Correctness}
 We can note that we have the same invariants hold as in the data independent case.
 We can also see that when we call $\DIPQOperation$ as $\DIPQExtract$ and we set $p = \inf$,
-then we the only possible change before the call to $\DIPQOrder$ is that we append an element with priority $\inf$ to the stash.
+then we have that the only possible change before the call to $\DIPQOrder$ is that we append an element with priority $\inf$ to the stash.
 Because we truncate the stash and the partitions if it grows to over $\sqrtn$ elements (in the call to $\Fill$),
 we can see that the ...
-% hmmmmm
+\subsection{Security and Obliviousness}
+To show obliviousness we will show that there exists a PPT
+adversary $\advers$ and for any $n = \text{poly}(\lambda)$,
 
-do not change the state of the queue before calling $\DIPQOrder$ as 
-the head evicts the inserted element into the stash.
-% TODO: ORDER CHANGE?
+\newcommand{\expRealOb}{\experiment_{\DIPQ}^{\text{Real}}(n)}
+\newcommand{\expSimOb}{\experiment_{\DIPQ}^{\text{Sim}}(n)}
+\begin{equation*}
+	\left| \Pr\left[\expRealOb = 1\right] - \Pr\left[\expSimOb = 0\right] \right| < (\lambda)
+\end{equation*}
+We define $\expRealOb$ and $\expSimOb$ as follows:
+- TODO: copy over
+
+\begin{lemma}
+	\cref{alg:ObvQueue} is secure and oblivious according to the above definition.
+	\begin{proof}
+		The proof is rather straightforward, 
+		
+	\end{proof}
+	
+\end{lemma}
+% hmmmmm
