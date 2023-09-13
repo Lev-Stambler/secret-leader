@@ -13,25 +13,28 @@ with equal priority. In practice, we can break ties by adding a unique identifie
 \newcommand{\good}{\mathcal{G}}
 \newcommand{\bad}{\mathcal{B}}
 
-\begin{algorithm}
-	\caption{$\MergeFill$}
-	\begin{algorithmic}[1]
-			\State \textbf{Input:} $\DIPQhead, \DIPQpartition_\DIPQcounter$
-			\State $e_1, ..., e_\gamma = \texttt{sort}(\DIPQhead, \DIPQpartition_\DIPQcounter)$ where $\gamma = |\DIPQhead| + |\DIPQpartition_\DIPQcounter|$ \Comment Via a data-independent sort
-			\State $\DIPQhead = \{e_1, ..., e_{\min\left(\sqrtn, \gamma\right)}\}$
-			\State $\DIPQpartition_\DIPQcounter = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
-			\State \Return $\DIPQhead', \DIPQpartition_\DIPQcounter$
-	\end{algorithmic}
-\end{algorithm}
 
 \begin{algorithm}
 	\caption{$\Fill$}
+	\label{alg:Fill}
 	\begin{algorithmic}[1]
 			\State \textbf{Input:} $\DIPQpartition_\DIPQcounter, \DIPQstash$
 			\State $e_1, ..., e_\gamma = \DIPQpartition_\DIPQcounter \bigcup \DIPQstash$ where $\gamma = |\DIPQpartition_\DIPQcounter| + |\DIPQstash|$
 			\State $\DIPQpartition_\DIPQcounter = \{e_1, ..., e_{\min(\sqrtn, \gamma)}\}$
 			\State $\DIPQstash = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
 			\State \Return $\DIPQpartition_\DIPQcounter', \DIPQstash$
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+	\caption{$\MergeFill$}
+	\label{alg:MergeFill}
+	\begin{algorithmic}[1]
+			\State \textbf{Input:} $\DIPQhead, \DIPQpartition_\DIPQcounter$
+			\State $e_1, ..., e_\gamma = \texttt{sort}(\DIPQhead, \DIPQpartition_\DIPQcounter)$ where $\gamma = |\DIPQhead| + |\DIPQpartition_\DIPQcounter|$ \Comment Via a data-independent sort
+			\State $\DIPQhead = \{e_1, ..., e_{\min\left(\sqrtn, \gamma\right)}\}$
+			\State $\DIPQpartition_\DIPQcounter = \{e_{\sqrtn + 1}, ..., e_\gamma\}$
+			\State \Return $\DIPQhead', \DIPQpartition_\DIPQcounter$
 	\end{algorithmic}
 \end{algorithm}
 

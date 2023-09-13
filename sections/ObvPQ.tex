@@ -31,8 +31,8 @@ Here we will adopt the above data structure into an oblivious one.
 			\State \Return $(p_r, v_r)$
 		\EndFunction
 		\Function{$\DIPQOrder$}{}
-			\State $\DIPQpartition_{\DIPQcounter}, \DIPQstash = \Fill(\DIPQpartition_\DIPQcounter, \DIPQstash)$
-			\State $\DIPQhead, \DIPQpartition_\DIPQcounter = \MergeFill(\DIPQhead, \DIPQpartition_\DIPQcounter)$
+			\State $\DIPQpartition_{\DIPQcounter}, \DIPQstash = \Fill(\DIPQpartition_\DIPQcounter, \DIPQstash)$ \Comment See \cref{alg:Fill}
+			\State $\DIPQhead, \DIPQpartition_\DIPQcounter = \MergeFill(\DIPQhead, \DIPQpartition_\DIPQcounter)$ \Comment See \cref{alg:MergeFill}
 			\State $\DIPQcounter \gets \DIPQcounter + 1 \mod \sqrtn$
 		\EndFunction
 	\end{algorithmic}
@@ -47,23 +47,6 @@ then we have that the only possible change before the call to $\DIPQOrder$ is th
 Because we truncate the stash and the partitions if it grows to over $\sqrtn$ elements (in the call to $\Fill$),
 we can see that the ...
 \subsection{Security and Obliviousness}
-To show obliviousness we will show that there exists a PPT
-adversary $\advers$ and for any $n = \text{poly}(\lambda)$,
-
-\newcommand{\expRealOb}{\experiment_{\DIPQ}^{\text{Real}}(n)}
-\newcommand{\expSimOb}{\experiment_{\DIPQ}^{\text{Sim}}(n)}
-\begin{equation*}
-	\left| \Pr\left[\expRealOb = 1\right] - \Pr\left[\expSimOb = 0\right] \right| < (\lambda)
-\end{equation*}
-We define $\expRealOb$ and $\expSimOb$ as follows:
-- TODO: copy over
-
-\begin{lemma}
-	\cref{alg:ObvQueue} is secure and oblivious according to the above definition.
-	\begin{proof}
-		The proof is rather straightforward, 
-		
-	\end{proof}
+We can see that the memory access pattern for $\DIPQOperation$ is deterministic and independent of the input.
+We thus have that \cref{alg:ObvQueue} is oblivious.
 	
-\end{lemma}
-% hmmmmm
