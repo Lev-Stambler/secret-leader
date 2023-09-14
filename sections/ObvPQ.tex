@@ -1,6 +1,7 @@
 \section{Adopting to an Oblivious Priority Queue}
 Here we will adopt the above data structure into an oblivious one.
 
+\newcommand{\flag}{\texttt{flag}}
 \newcommand{\DIPQOperation}{\texttt{Access}}
 \newcommand{\experiment}{\textbf{Exp}}
 \newcommand{\Append}{\texttt{Append}}
@@ -12,21 +13,21 @@ Here we will adopt the above data structure into an oblivious one.
 		\Function{$\DIPQInit$}{}
 		\State $\DIPQcounter \gets 0$
 		% TODO: more formal with $$$$$
-		\State $\DIPQhead \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQhead| = \sqrtn$
-		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQpartition_\alpha| = \sqrtn$
-		\State $\DIPQstash \gets [(\inf, \$), ..., (\inf, \$)]$ where $|\DIPQstash| = \sqrtn$
+		\State $\DIPQhead \gets [(\inf, \bot), ..., (\inf, \bot)]$ where $|\DIPQhead| = \sqrtn$
+		\State $\DIPQpartition_0, \cdots, \DIPQpartition_{\sqrtn-1} \gets [(\inf, \bot), ..., (\inf, \bot)]$ where $|\DIPQpartition_\alpha| = \sqrtn$
+		\State $\DIPQstash \gets [(\inf, \bot), ..., (\inf, \bot)]$ where $|\DIPQstash| = \sqrtn$
 		\EndFunction
-		\Function{$\DIPQOperation$}{$p, v, op$}
+		\Function{$\DIPQOperation$}{$p, v, op \in OPS$} \Comment where $OPS = \{\texttt{Insert}, \texttt{ExtractFront}\}$
 			\State Append $(p, v)$ to $\DIPQhead$
 			\State $i, (p', v') = \texttt{GetLargest}(\DIPQhead)$ where $i$ is the index of $(p', v')$ in $\DIPQhead$
-			\State $\texttt{FlagPriority} = 1$ if $p' < p$ else $0$
-			\State $\DIPQstash =  \Append(\DIPQstash, \texttt{FlagPriority} \cdot (p, v) + (1 - \texttt{FlagPriority}) \cdot (p', v')$
-			\State $\DIPQhead[i] = \texttt{FlagPriority} \cdot (p', v') + (1 - \texttt{FlagPriority}) \cdot (p, v)$
-			\State $\texttt{FlagIns} = 1$ if $op = \texttt{Insert}$, otherwise $0$ when $op = \texttt{ExtractFront}$
+			\State $\flag_{p} = 1$ if $p' < p$ else $0$
+			\State $\DIPQstash =  \Append(\DIPQstash, \flag_p \cdot (p, v) + (1 - \flag_p) \cdot (p', v')$
+			\State $\DIPQhead[i] = \flag_p \cdot (p', v') + (1 - \flag_p) \cdot (p, v)$
 			\State $\DIPQhead_{ins}, (p_r, v_r)_{ins} =  \DIPQhead, (0, 0)$
 			\State $\DIPQhead_{extr}, (p_r, v_r)_{extr} =  \ExtractSmallest(\DIPQhead)$
-			\State $\DIPQhead = \texttt{FlagIns} \cdot \DIPQhead_{ins} + (1 - \texttt{FlagIns}) \cdot \Append(\DIPQhead_{extr}, \inf)$
-			\State $(p_r, v_r) = \texttt{FlagIns} \cdot (p_r, v_r)_{ins} + (1 - \texttt{FlagIns}) \cdot (p_r, v_r)_{extr}$
+			\State $\flag_{ins} = 1$ if $op = \texttt{Insert}$, otherwise $0$ when $op = \texttt{ExtractFront}$
+			\State $\DIPQhead = \flag_{ins} \cdot \DIPQhead_{ins} + (1 - \flag_{ins}) \cdot \Append(\DIPQhead_{extr}, \inf)$
+			\State $(p_r, v_r) = \flag_{ins} \cdot (p_r, v_r)_{ins} + (1 - \flag_{ins}) \cdot (p_r, v_r)_{extr}$
 			\State Call $\texttt{Order}()$ \label{algline:ObvPQOrderOp}
 			\State \Return $(p_r, v_r)$
 		\EndFunction
@@ -42,10 +43,11 @@ Here we will adopt the above data structure into an oblivious one.
 
 \subsection{Correctness}
 We can note that we have the same invariants hold as in the data independent case.
-We can also see that when we call $\DIPQOperation$ as $\DIPQExtract$ and we set $p = \inf$,
+We can also see that when we call $\DIPQOperation$ with operation $\DIPQExtract$ where $p = \inf$,
 then we have that the only possible change before the call to $\DIPQOrder$ is that we append an element with priority $\inf$ to the stash.
-Because we truncate the stash and the partitions if it grows to over $\sqrtn$ elements (in the call to $\Fill$),
-we can see that the ...
+As we are removing the smallest element from the queue but adding back an element with priority $\inf$,
+we mantain the size of the queue without changing its correctness.
+
 \subsection{Security and Obliviousness}
 We can see that the memory access pattern for $\DIPQOperation$ is deterministic and independent of the input.
 We thus have that \cref{alg:ObvQueue} is oblivious.

@@ -26,14 +26,14 @@ Then, in \cref{alg:DIQueue}, we show how to build a data independent (resp. obli
 		\State $\DeQCouner \gets 0$
 		\State $\DeQSize \gets 0$
 		\EndFunction
-		\Function{$\DeQAccess$}{$v, op \in OPS$} \Comment where $OPS = \{\texttt{ins}, \texttt{extrBack}, \texttt{extrFront}\}$
-			\State $p_{\texttt{front}} = \DeQCouner$ if $op = \texttt{ins}$ else $\inf$ 
-			\State $p_{\texttt{back}} = \DeQCouner$ if $op = \texttt{ins}$ else $-\inf$
+		\Function{$\DeQAccess$}{$v, op \in OPS$} \Comment where $OPS = \{\texttt{Ins}, \texttt{ExtrBack}, \texttt{ExtrFront}\}$
+			\State $p_{\texttt{front}} = \DeQCouner$ if $op = \texttt{Ins}$ else $\inf$ 
+			\State $p_{\texttt{back}} = \DeQCouner$ if $op = \texttt{Ins}$ else $-\inf$
 		 	\State $\DIPQBack.\DIPQInsert(p_{\texttt{back}}, v)$ \Comment If $op \neq \texttt{ins}$, then this insert will be ignored
 		 	\State $\DIPQFr.\DIPQInsert(p_{\texttt{front}}, v)$ \Comment If $op \neq \texttt{ins}$, then this insert will be ignored
 
-			\State $p_{\texttt{back}}' = -\inf$ if $op = \texttt{\texttt{extrBack}}$ and $\inf$ otherwise
-			\State $p_{\texttt{front}}' = \inf$ if $op = \texttt{\texttt{extrFront}}$ and $-\inf$ otherwise
+			\State $p_{\texttt{back}}' = -\inf$ if $op = \texttt{\texttt{ExtrBack}}$ and $\inf$ otherwise
+			\State $p_{\texttt{front}}' = \inf$ if $op = \texttt{\texttt{ExtrFront}}$ and $-\inf$ otherwise
 		 	\State $\DIPQBack.\DIPQInsert(p_{\texttt{back}}', \bot)$ \Comment dummy element which will be removed if $op \neq \texttt{extrBack}$
 		 	\State $\DIPQFr.\DIPQInsert(p_{\texttt{front}}', \bot)$ \Comment dummy element which will be removed if $op \neq \texttt{extrFront}$
 
@@ -53,9 +53,11 @@ Thus $\DIPQFr$ and $\DIPQBack$ will never output the same element.
 To show correctness, we must show that $\DeQExtractBack$ returns the ``newest'' element in the queue and $\DeQExtractFront$ returns the ``oldest'' element inserted into the queue.
 We can do this by simply noting that every inserted item is associated with a unique counter value which increases with every operation.
 Thus, extracting from the front of $\DIPQFr$ will always return the oldest element and extracting from the back of $\DIPQBack$ will always return the newest element.
+
 We can also see that when we have a non-insert operation, we are either calling a front or back extract operation.
-If we are calling a front extraction, then we insert a dummy element into the back queue which will be removed by the extract operation.
+If we are calling a front extraction, then we insert a dummy element into the back queue which will be removed by the extract operation associated with $(p, v)_{back}$.
 If we are calling a back extraction, then we insert a dummy element into the front queue which will be removed by the extract operation.
+Thus, we have that calling the ``dummy'' extractions will not change the state of the queue.
 
 \subsection{Obliviousness}
 Assuming that $\DIPQ$ is oblivious, we can see that $\DeQ$ is also oblivious as the memory access of $\DeQAccess$ is deterministic.
