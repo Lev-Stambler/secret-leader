@@ -1,0 +1,51 @@
+\newcommand{\iO}{i\mathcal{O}}
+\section{Using iO}
+We can adopt the $\iO$-based version of secret leader election outlined in \cite{boneh2020single} in a rather straightforward manner.
+We can then show semi-honest security of the protocol in the CRS model, where the $\iO$ obfuscated program is the CRS.
+
+
+\begin{algorithm}
+	\caption{$\iO$ based Multi Secret Leader Election}
+	\label{alg:iOSSLE}
+	\begin{algorithmic}[1]
+		\Function{$P^k_{\elect}$}{$(\pk_0, \dots, \pk_{n - 1}), i, n, R$}
+		\State $s \gets R, \pk_0, \dots, \pk_{n - 1}$
+		\State $(w_1, r_1) \dots (w_k, r_k), r' \gets F(K, s)$ % TODO: does r' need to be different for each party??? I feel like it should be....
+		\State $b_\ell \gets 1$ if $i = w_\ell$ and $0$ otherwise
+		\State $c_\ell \gets \comm(b_\ell, r_ell)$
+		\State $\ct \gets \PKEnc(\pk_i, (r_1, \dots, r_k); r')$
+		\State \Return $(c_1, \dots, c_k, \ct)$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The above is nearly identical to \cite{boneh2020single} except that we have $F$ be a different size which
+scales linearly with the number of elections.
+
+% TODO sim sketch
+\subsection{Sketch of Semi-Honest Simulation Security}
+We sketch the simulator for the semi-honest security of the above protocol. First, we have that $\registerElect$
+behaves identically to the $\iO$-based single secret leader election protocol (we do not show this above).
+The only difference is that the parties also send a public key $\pk_i$. Given a simulation secure public-key encryption scheme,
+the simulator can simulate these public keys.
+
+Then, a call to elect can be simulated in a rather straightforward way. As we have that
+$R$ is public randomness, we can show that $F(K, s) \compInd s'$ where $s' \randomGet U$.
+We can see this as $P^k_\elect \compInd P^k_\elect(\{s\})$ where the latter program punctures
+$F$ on $s$ and hardcodes the output of $F(K, s)$ as a constant which we will call $z'$. Then, $P^k_\elect(\{s\}) \compInd P^k_\elect(\{s\})'$
+% TODO: z
+where the constant $s$ is replaced with a random value $s'$.
+Then, if an adversary can distinguish between the two, we can construct an adversary
+which can distinguish the output on the punctured point from a uniformly random distribution.
+
+% TODO: hrmm
+So, given the output of the ideal functionality, a simulator can sample $K, R$ from a uniformly random distribution.
+Then, the simulator can create the obfuscated program  TODO:compl.
+
+% TODO:; diff ideal functionality as we can get re-elected.
+Next, given output $\elect(\eid)$ as $(\texttt{outcome}, \eid, W_i = \set{\alpha_1, \dots, \alpha_k})$
+the simulator can draw a random $\bar{z}$ and get $z'$ by XORing $\bar{z}$ such that $w_\ell = i$ if
+$\ell \in W_i$. Note that $z'$ is still indistinguishable from a random string as we have $w_\ell = i$ with uniformly
+random probability.
+Then, we can see that the simulator has $P^k_\elect(\{s\})' \compInd P^k$.
+% TODO: z' is still not random... we need each bit to be set w/ prob 1/2
